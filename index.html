@@ -439,7 +439,16 @@ const Engine = (() => {
     s = s.replace(/§/g, '.').replace(/¦/g, '/');
     s = s.replace(/\b[a-z]+\b/g, w => NUM[w] || w);
     s = s.replace(/\b(\d)\s+(st|nd|rd|th)\b/g, '$1$2');
-    return s.replace(/\s+/g, ' ').trim();
+    s = s.replace(/\s+/g, ' ');
+    // Spoken fractions and hose sizes: every way of saying 1¾, 2½ and 1½ becomes one token.
+    s = s.replace(/\b(\d) point (\d)\b/g, '$1.$2')
+      .replace(/\b3 quarters?\b/g, '3/4').replace(/\band 3 4\b/g, 'and 3/4')
+      .replace(/\band (?:a )?half\b/g, 'and 1/2').replace(/\b(\d) half\b/g, '$1 1/2')
+      .replace(/\b1 (?:inch )?(?:and )?(?:a )?3\/4\b/g, '1.75').replace(/\b(?:an? )?inch (?:and )?(?:a )?3\/4\b/g, '1.75')
+      .replace(/\b2 (?:inch )?(?:and )?(?:a )?1\/2\b/g, '2.5')
+      .replace(/\b1 (?:inch )?(?:and )?(?:a )?1\/2\b/g, '1.5').replace(/\b(?:an? )?inch (?:and )?(?:a )?1\/2\b/g, '1.5')
+      .replace(/\b(1\.75|2\.5|1\.5) inch(es)?\b/g, '$1');
+    return s.trim();
   }
 
   const SECTION_LABEL = { location: 'Location' };
@@ -1635,7 +1644,7 @@ const FX = (() => {
     $('#sApi').value = store.get('apiUrl', '') || CONF.apiUrl || '';
     $('#connMode').textContent = S.session.mode === 'sheets' ? `Connected. Department: ${S.session.dept.name}. Role: ${S.session.role}.` : 'Demo mode. Rules and buildings you add stay on this device.';
     $('#rulesOrder tbody').innerHTML = S.cfg.order.map(o => `<tr><td>${o.order}</td><td>${esc(o.label)}</td><td>${o.required === 'yes' ? 'Required' : o.required === 'warn' ? 'Recommended' : 'Optional'}</td><td>${esc(o.hint)}</td></tr>`).join('');
-    $('#rulesTerms tbody').innerHTML = S.cfg.terms.map(t => `<tr><td>${esc((S.cfg.order.find(o => o.section === t.section) || {}).label || t.section)}</td><td>${esc(t.term)}</td><td class="muted">${esc(String(t.variants || '').split('|').slice(0, 5).join(', '))}</td><td>${t.approved === 'Y' ? 'Yes' : '<strong style="color:var(--signal)">No</strong>'}</td></tr>`).join('');
+    $('#rulesTerms tbody').innerHTML = S.cfg.terms.map(t => `<tr><td>${esc((S.cfg.order.find(o => o.section === t.section) || {}).label || t.section)}</td><td>${esc(t.term)}</td><td class="muted">${esc(String(t.variants || '').split('|').map(v => v.trim()).filter(Boolean).join(', '))}</td><td>${t.approved === 'Y' ? 'Yes' : '<strong style="color:var(--signal)">No</strong>'}</td></tr>`).join('');
   }
 
   /* ---------- admin: building upload and opening tagging ---------- */
