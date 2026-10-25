@@ -230,9 +230,14 @@ img { max-width: 100%; }
     <form id="loginForm" class="panel" style="padding:0;border:0;background:none">
       <label class="f">Department email
         <input type="email" id="loginEmail" autocomplete="email" placeholder="lt.garcia@yourcityfire.gov" required>
-        <span class="hint">Your email domain picks your department's building library.</span>
+        <span class="hint">Your email decides which agency's buildings you see.</span>
+      </label>
+      <label class="f" id="codeField" hidden>Sign-in code
+        <input type="text" id="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code">
+        <span class="hint" id="codeHint"></span>
       </label>
       <button class="btn big" type="submit" id="loginBtn">Sign in</button>
+      <button class="btn quiet small" type="button" id="changeEmail" hidden>Use a different email</button>
       <p class="muted" id="loginMode" style="font-size:.9rem"></p>
       <p class="note bad" id="loginErr" hidden></p>
     </form>
@@ -349,7 +354,7 @@ img { max-width: 100%; }
 <section data-screen="admin" hidden>
   <div style="display:grid;gap:6px"><div class="eyebrow" id="adminDept"></div><h2>Add a building</h2>
     <p class="muted">Take a photo of each side, then drag a box over every window, door, garage door, and basement access. The simulator places fire and smoke in those boxes.</p></div>
-  <p class="note bad" id="adminDenied" hidden>Only department admins can add buildings. Ask your admin to add your email to the Users tab of the Sheet with the role "admin".</p>
+  <p class="note bad" id="adminDenied" hidden>Only agency admins can add buildings. Ask your training officer to list your email as an admin in the Users tab.</p>
   <div id="adminBody" style="display:grid;gap:20px">
   <div class="panel">
     <h3>1. Building facts</h3>
@@ -398,14 +403,12 @@ img { max-width: 100%; }
     <div class="row"><button class="btn" type="button" id="saveSettings">Save</button><button class="btn quiet" type="button" id="signOut">Sign out</button></div>
   </div>
   <div class="panel">
-    <h3>Google Sheet connection</h3>
-    <p class="muted" id="connMode"></p>
-    <label class="f">Apps Script web app URL <input type="url" id="sApi" placeholder="https://script.google.com/macros/s/…/exec"><span class="hint">Leave empty to run in demo mode with the built-in rules and buildings.</span></label>
-    <div class="row"><button class="btn" type="button" id="saveApi">Connect</button><button class="btn quiet" type="button" id="clearApi">Use demo mode</button></div>
+    <h3>Your agency</h3>
+    <p id="connMode"></p>
   </div>
   <div class="panel">
     <h3>Rules in use</h3>
-    <p class="muted">These come from the SizeUpOrder, ApprovedTerms, and Rules tabs of your Sheet. In demo mode they're the built-in defaults.</p>
+    <p class="muted">These come from the shared Sheet's SizeUpOrder, ApprovedTerms, and Rules tabs. In demo mode they're the built-in defaults.</p>
     <details><summary>Report order</summary><div class="scroll-x" style="margin-top:10px"><table class="t" id="rulesOrder"><thead><tr><th>#</th><th>Part</th><th>Required</th><th>Coaching</th></tr></thead><tbody></tbody></table></div></details>
     <details><summary>Approved terms</summary><div class="scroll-x" style="margin-top:10px"><table class="t" id="rulesTerms"><thead><tr><th>Part</th><th>Term</th><th>Also hears</th><th>OK?</th></tr></thead><tbody></tbody></table></div></details>
   </div>
@@ -1353,25 +1356,32 @@ const FX = (() => {
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2600); }
 
-  /* ---------- Sheets API ---------- */
+  /* ---------- Sheets API: one connection for every agency, set in config.js ---------- */
   const Api = {
-    url() { return String(store.get('apiUrl', '') || CONF.apiUrl || '').trim(); },
-    async get(params) {
-      const u = new URL(this.url()); Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
-      const r = await fetch(u.toString()); if (!r.ok) throw new Error('The Sheet connection answered with an error (' + r.status + ').');
-      const j = await r.json(); if (j.error) throw new Error(j.error); return j;
-    },
-    async post(body) {
-      const r = await fetch(this.url(), { method: 'POST', body: JSON.stringify(body) });
-      if (!r.ok) throw new Error('The Sheet connection answered with an error (' + r.status + ').');
-      const j = await r.json(); if (j.error) throw new Error(j.error); return j;
+    url() { return String(CONF.apiUrl || '').trim(); },
+    async call(action, data = {}) {
+      let r;
+      try { r = await fetch(this.url(), { method: 'POST', body: JSON.stringify({ action, token: store.get('token', ''), ...data }) }); }
+      catch { throw new Error("Can't reach the simulator's server. Check your connection and try again."); }
+      if (!r.ok) throw new Error('The server answered with an error (' + r.status + ').');
+      const j = await r.json();
+      if (j.error) { const e = new Error(j.error); e.code = j.code; if (j.code === 'auth') { store.del('token'); } throw e; }
+      return j;
     }
   };
-  const driveSrc = id => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w1600`;
+  const imgCache = {};
+  async function srcOf(b, side) {
+    const sd = b.sides[side];
+    if (sd.src) return sd.src;
+    if (!b.remote || !sd.fileId) return '';
+    imgCache[sd.fileId] = imgCache[sd.fileId] || Api.call('image', { id: sd.fileId }).then(j => j.dataUrl);
+    try { sd.src = await imgCache[sd.fileId]; } catch (e) { delete imgCache[sd.fileId]; if (e.code === 'auth') expired(); throw e; }
+    return sd.src;
+  }
   function fromRemote(b) {
     const ops = b.openings || [];
     const sides = {};
-    for (const s of SIDES) sides[s] = { src: b.photos && b.photos[s] ? driveSrc(b.photos[s]) : '', fileId: b.photos && b.photos[s], openings: ops.filter(o => o.side === s).map(o => ({ id: o.id, type: o.type, fl: String(o.fl), x: +o.x, y: +o.y, w: +o.w, h: +o.h })) };
+    for (const s of SIDES) sides[s] = { src: '', fileId: b.photos && b.photos[s], openings: ops.filter(o => o.side === s).map(o => ({ id: o.id, type: o.type, fl: String(o.fl), x: +o.x, y: +o.y, w: +o.w, h: +o.h })) };
     return { ...b, sqft: +b.sqft, stories: +b.stories, planW: +b.planW || 40, planD: +b.planD || 40, typeCategories: [b.category].concat(b.category === 'multifamily' ? ['residential'] : []), sides, remote: true };
   }
 
@@ -1381,23 +1391,26 @@ const FX = (() => {
     if (!domain || PUBLIC_MAIL.includes(domain)) return { id: 'ANY', name: 'Any Department' };
     return { id: domain, name: domain };
   }
-  async function signIn(email) {
-    email = email.trim().toLowerCase();
+  const cleanEmail = email => {
+    email = String(email || '').trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error('Enter a full email address, like name@yourcityfire.gov.');
-    let custom = [];
-    if (Api.url()) {
-      const j = await Api.get({ action: 'config', email });
-      S.session = { email, dept: j.department, role: j.role || 'member', mode: 'sheets' };
-      S.cfg = Engine.prepConfig({ order: j.order?.length ? j.order : DEFAULTS.order, terms: j.terms?.length ? j.terms : DEFAULTS.terms, rules: j.rules?.length ? j.rules : DEFAULTS.rules });
-      custom = (j.buildings || []).map(fromRemote);
-    } else {
-      S.session = { email, dept: demoDept(email), role: 'admin', mode: 'demo' };
-      S.cfg = Engine.prepConfig(DEFAULTS);
-      custom = store.get('custom', []).filter(b => b.dept === S.session.dept.id || b.dept === 'ANY');
-    }
+    return email;
+  };
+  function demoSignIn(email) {
+    S.session = { email, dept: demoDept(email), role: 'admin', mode: 'demo' };
+    S.cfg = Engine.prepConfig(DEFAULTS);
+    const custom = store.get('custom', []).filter(b => b.dept === S.session.dept.id || b.dept === 'ANY');
     S.buildings = [...Samples.list(), ...custom];
     store.set('session', { email });
   }
+  async function loadAgency() {
+    const j = await Api.call('config');
+    S.session = { email: j.email, dept: j.department, role: j.role || 'member', mode: 'sheets' };
+    S.cfg = Engine.prepConfig({ order: j.order?.length ? j.order : DEFAULTS.order, terms: j.terms?.length ? j.terms : DEFAULTS.terms, rules: j.rules?.length ? j.rules : DEFAULTS.rules });
+    S.buildings = [...Samples.list(), ...(j.buildings || []).map(fromRemote)];
+    store.set('session', { email: j.email });
+  }
+  function expired() { S.session = null; go('login'); loginStage('email'); $('#loginErr').hidden = false; $('#loginErr').textContent = 'Your sign-in has expired. Sign in again.'; }
 
   /* ---------- navigation ---------- */
   function go(name) {
@@ -1417,7 +1430,7 @@ const FX = (() => {
   function renderHome() {
     const s = S.session;
     $('#deptLabel').textContent = `${s.dept.name} · ${s.email}`;
-    $('#homeDept').textContent = `${s.dept.name} · ${s.mode === 'sheets' ? 'connected to Google Sheet' : 'demo mode'}`;
+    $('#homeDept').textContent = s.mode === 'sheets' ? `${s.dept.name} · your agency's buildings` : `${s.dept.name} · demo mode`;
     $('#navAdmin').hidden = s.role !== 'admin';
     $('#libCount').textContent = `${S.buildings.length} buildings`;
     $('#lib').innerHTML = S.buildings.map((b, i) => `
@@ -1430,19 +1443,11 @@ const FX = (() => {
           <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:.85rem">${b.sample ? 'Built-in sample' : b.dept === 'ANY' ? 'Shared library' : 'Your department'}</span>
             <button class="btn small" type="button" data-run="${i}">Run</button></div>
         </div></article>`).join('');
-    $$('[data-thumb]').forEach(img => { const b = S.buildings[+img.dataset.thumb]; setImg(img, b, 'A'); });
+    $$('[data-thumb]').forEach(img => { const b = S.buildings[+img.dataset.thumb]; srcOf(b, 'A').then(src => { if (src) img.src = src; }).catch(() => { }); });
     const hist = store.get('history', []).filter(h => h.email === s.email).slice(0, 8);
     $('#histEmpty').hidden = hist.length > 0; $('#histTable').hidden = !hist.length;
     $('#histTable tbody').innerHTML = hist.map(h => `<tr><td>${esc(new Date(h.ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td><td>${esc(h.building)}</td><td>${esc(h.inv)}</td><td><strong>${h.score}</strong></td></tr>`).join('');
   }
-  function setImg(img, b, side) {
-    const sd = b.sides[side]; img.src = sd.src;
-    img.onerror = async () => {
-      img.onerror = null;
-      if (b.remote && sd.fileId && Api.url()) { try { const j = await Api.get({ action: 'image', id: sd.fileId }); sd.src = j.dataUrl; img.src = j.dataUrl; } catch { } }
-    };
-  }
-
   /* ---------- scenario flow ---------- */
   function start(b) {
     S.b = b; S.sc = Engine.makeScenario(b, { unit: settings().unit }); S.result = null; S.r360 = null; S.seen = new Set(['A']); S.did360 = false;
@@ -1459,14 +1464,10 @@ const FX = (() => {
     const sd = S.b.sides[side];
     return { src: sd.src, openings: sd.openings, cond: S.sc.cond, roofIntensity: S.sc.roofIntensity, victimId: S.sc.victim ? S.sc.victim.openingId : null, wind: S.sc.wind };
   }
-  function showScene(id, side) {
-    const sc = scene(id); const d = sceneData(side);
-    const img = $('#' + id + ' img');
-    sc.show(d);
-    img.onerror = async () => {
-      const sd = S.b.sides[side];
-      if (S.b.remote && sd.fileId && Api.url()) { try { const j = await Api.get({ action: 'image', id: sd.fileId }); sd.src = j.dataUrl; sc.show(sceneData(side)); } catch { } }
-    };
+  async function showScene(id, side) {
+    const sc = scene(id);
+    try { const src = await srcOf(S.b, side); sc.show({ ...sceneData(side), src }); }
+    catch (e) { toast("Couldn't load the photo of side " + Engine.SIDE_NAME[side] + '. ' + e.message); }
   }
   function arrive() {
     try { speechSynthesis.cancel(); } catch { }
@@ -1598,7 +1599,7 @@ const FX = (() => {
       issues: r.items.filter(i => i.status !== 'pass').map(i => i.msg).join(' | '), did360: S.did360, sides: [...S.seen].join(''), seconds: S.tReport,
       report360: $('#report360').value.trim() };
     const h = store.get('history', []); h.unshift(rec); store.set('history', h.slice(0, 60));
-    if (S.session.mode === 'sheets') { try { await Api.post({ action: 'logAttempt', email: S.session.email, attempt: rec }); } catch (e) { toast('Saved on this device. The Sheet log failed: ' + e.message); } }
+    if (S.session.mode === 'sheets') { try { await Api.call('logAttempt', { attempt: rec }); } catch (e) { toast('Saved on this device. The Sheet log failed: ' + e.message); } }
   }
 
   /* ---------- speech-to-text ---------- */
@@ -1641,8 +1642,7 @@ const FX = (() => {
   function renderSettings() {
     const st = settings();
     $('#sUnit').value = st.unit; $('#sAids').value = st.aids; $('#sVoice').value = st.voice;
-    $('#sApi').value = store.get('apiUrl', '') || CONF.apiUrl || '';
-    $('#connMode').textContent = S.session.mode === 'sheets' ? `Connected. Department: ${S.session.dept.name}. Role: ${S.session.role}.` : 'Demo mode. Rules and buildings you add stay on this device.';
+    $('#connMode').textContent = S.session.mode === 'sheets' ? `${S.session.dept.name}. You're signed in as ${S.session.email} (${S.session.role === 'admin' ? 'admin' : 'member'}). You see only your agency's buildings and the shared samples.` : 'Demo mode. Buildings you add stay on this device. Your training officer sets up the shared Google Sheet in config.js.';
     $('#rulesOrder tbody').innerHTML = S.cfg.order.map(o => `<tr><td>${o.order}</td><td>${esc(o.label)}</td><td>${o.required === 'yes' ? 'Required' : o.required === 'warn' ? 'Recommended' : 'Optional'}</td><td>${esc(o.hint)}</td></tr>`).join('');
     $('#rulesTerms tbody').innerHTML = S.cfg.terms.map(t => `<tr><td>${esc((S.cfg.order.find(o => o.section === t.section) || {}).label || t.section)}</td><td>${esc(t.term)}</td><td class="muted">${esc(String(t.variants || '').split('|').map(v => v.trim()).filter(Boolean).join(', '))}</td><td>${t.approved === 'Y' ? 'Yes' : '<strong style="color:var(--signal)">No</strong>'}</td></tr>`).join('');
   }
@@ -1765,7 +1765,8 @@ const FX = (() => {
         const photos = Object.fromEntries(SIDES.map(s => [s, b.sides[s].src]));
         const openings = SIDES.flatMap(s => b.sides[s].openings.map(o => ({ ...o, side: s })));
         const { sides, ...meta } = b;
-        const j = await Api.post({ action: 'saveBuilding', email: S.session.email, building: meta, openings, photos });
+        const j = await Api.call('saveBuilding', { building: meta, openings, photos });
+        b.sides && SIDES.forEach(sd => { const f = j.building.photos[sd]; if (f) imgCache[f] = Promise.resolve(photos[sd]); });
         S.buildings.push(fromRemote(j.building));
       } else {
         const list = store.get('custom', []); list.push(b);
@@ -1789,11 +1790,18 @@ const FX = (() => {
 
   /* ---------- wiring ---------- */
   function wire() {
-    $('#loginMode').textContent = Api.url() ? 'Connected to your department\'s Google Sheet.' : 'Demo mode: built-in buildings and rules. An admin can connect a Google Sheet under Setup.';
+    $('#loginMode').textContent = Api.url() ? "We'll email you a 6-digit code to sign in." : 'Demo mode: built-in buildings and rules on this device.';
+    $('#changeEmail').onclick = () => { loginStage('email'); $('#loginEmail').focus(); };
     $('#loginForm').addEventListener('submit', async e => {
-      e.preventDefault(); const er = $('#loginErr'); er.hidden = true; $('#loginBtn').disabled = true; $('#loginBtn').textContent = 'Signing in…';
-      try { await signIn($('#loginEmail').value); go('home'); } catch (err) { er.hidden = false; er.textContent = err.message; }
-      finally { $('#loginBtn').disabled = false; $('#loginBtn').textContent = 'Sign in'; }
+      e.preventDefault(); const er = $('#loginErr'); er.hidden = true;
+      const btn = $('#loginBtn'); btn.disabled = true; btn.textContent = 'Working…';
+      try {
+        const email = cleanEmail($('#loginEmail').value);
+        if (!Api.url()) { demoSignIn(email); go('home'); }
+        else if (loginStage.now !== 'code') { await Api.call('requestCode', { email }); loginStage('code', email); }
+        else { const j = await Api.call('verifyCode', { email, code: $('#loginCode').value }); store.set('token', j.token); await loadAgency(); go('home'); }
+      } catch (err) { er.hidden = false; er.textContent = err.message; }
+      finally { btn.disabled = false; btn.textContent = loginStage.now === 'code' ? 'Sign in' : (Api.url() ? 'Email me a code' : 'Sign in'); }
     });
     $('#brandBtn').onclick = () => go('home');
     $$('[data-nav]').forEach(b => b.onclick = () => go(b.dataset.nav));
@@ -1814,9 +1822,7 @@ const FX = (() => {
     $('#sameBtn').onclick = () => start(S.b);
     $('#speakModel').onclick = () => say($('#modelText').textContent);
     $('#saveSettings').onclick = () => { store.set('unit', $('#sUnit').value.trim() || 'Engine 1'); store.set('aids', $('#sAids').value); store.set('voice', $('#sVoice').value); toast('Saved.'); };
-    $('#signOut').onclick = () => { store.del('session'); S.session = null; go('login'); };
-    $('#saveApi').onclick = async () => { store.set('apiUrl', $('#sApi').value.trim()); try { await signIn(S.session.email); toast(S.session.mode === 'sheets' ? 'Connected to the Sheet.' : 'Demo mode.'); renderSettings(); } catch (e) { toast(e.message); } };
-    $('#clearApi').onclick = async () => { store.set('apiUrl', ''); await signIn(S.session.email); renderSettings(); toast('Demo mode.'); };
+    $('#signOut').onclick = () => { if (S.session && S.session.mode === 'sheets') Api.call('signOut').catch(() => { }); store.del('token'); store.del('session'); S.session = null; loginStage('email'); go('login'); };
     // admin
     $('#photoTabs').addEventListener('click', e => { const b = e.target.closest('[data-ptab]'); if (b) { A.side = b.dataset.ptab; A.sel = -1; renderTagger(); } });
     $('#typeChips').addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (b) { A.type = b.dataset.type; renderTagger(); } });
@@ -1839,13 +1845,25 @@ const FX = (() => {
     taggerPointer();
   }
 
+  function loginStage(stage, email) {
+    loginStage.now = stage;
+    const code = stage === 'code';
+    $('#codeField').hidden = !code; $('#changeEmail').hidden = !code;
+    $('#loginEmail').readOnly = code;
+    $('#loginCode').required = code; if (!code) $('#loginCode').value = '';
+    $('#codeHint').textContent = code ? `We sent a code to ${email}. It works for 10 minutes. Check your junk folder if you don't see it.` : '';
+    $('#loginBtn').textContent = code ? 'Sign in' : (Api.url() ? 'Email me a code' : 'Sign in');
+    if (code) $('#loginCode').focus();
+  }
   async function boot() {
+    store.del('apiUrl');
     wire();
+    loginStage('email');
     const sess = store.get('session', null);
-    if (sess && sess.email) {
-      $('#loginEmail').value = sess.email;
-      try { await signIn(sess.email); go('home'); return; } catch { }
-    }
+    if (sess && sess.email) $('#loginEmail').value = sess.email;
+    if (Api.url()) {
+      if (store.get('token', '')) { try { await loadAgency(); go('home'); return; } catch (e) { if (e.code !== 'auth') { go('login'); $('#loginErr').hidden = false; $('#loginErr').textContent = e.message; return; } } }
+    } else if (sess && sess.email) { demoSignIn(sess.email); go('home'); return; }
     go('login');
   }
   window.SizeUpTest = { start: (i, opts) => { S.b = S.buildings[i]; start(S.b); if (opts) { S.sc = Engine.makeScenario(S.b, { unit: settings().unit, ...opts }); } }, state: () => S };
