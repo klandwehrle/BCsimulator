@@ -202,6 +202,13 @@ textarea.report { font-family: var(--f-mono); font-size: .98rem; line-height: 1.
 .radio .m b { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .04em; font-size: .9rem; margin-right: 6px; }
 .radio .m.me { background: var(--accent-soft); border-color: var(--accent); }
 .radio .m.note { background: var(--warn-soft); border-color: var(--warn); }
+.radio .m.ic { border-left: 5px solid var(--accent); }
+.checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.checklist li { display: flex; gap: 10px; align-items: baseline; padding: 6px 10px; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); }
+.checklist li::before { content: "○"; font-weight: 700; color: var(--muted); }
+.checklist li.done { border-color: var(--accent); }
+.checklist li.done::before { content: "✓"; color: var(--accent); }
+.checklist li small { color: var(--muted); margin-left: auto; text-align: right; }
 .radio .m.disp { border-left: 5px solid var(--bar-bg); }
 .cmdscore { font-family: var(--f-display); font-weight: 700; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
 .needs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -317,7 +324,10 @@ img { max-width: 100%; }
     <div style="display:grid;gap:6px">
       <div class="eyebrow" id="homeDept"></div>
       <h2>Next call</h2>
-      <p class="muted">A random building with a new fire every time: smoke only, one room, part of the building, or fully involved.</p>
+      <p class="muted">A random building with a new fire every time, from smoke only to 100% involved.</p>
+      <div class="fieldset"><span class="eyebrow">Respond as</span><div class="chips" id="roleSel" role="group" aria-label="Respond as">
+        <button type="button" data-role="engine">Engine company officer</button><button type="button" data-role="battalion">Battalion chief</button></div>
+        <span class="hint" id="roleHint"></span></div>
     </div>
     <button class="btn big" type="button" id="randomBtn">Start random call</button>
   </div>
@@ -343,6 +353,17 @@ img { max-width: 100%; }
     </div>
   </div>
   <div class="panel"><h3>Units responding</h3><div class="units" id="unitsTone"></div><p class="muted" id="unitsNote" style="font-size:.88rem">Times are minutes after you arrive.</p></div>
+</section>
+
+<!-- EN ROUTE (battalion chief) -->
+<section data-screen="enroute" hidden>
+  <div class="console">
+    <div class="row" style="justify-content:space-between"><span class="eyebrow">Responding · <span id="erUnit">Battalion</span></span><span class="eyebrow">Incident time <span id="erClock">0:00</span></span></div>
+    <h2 style="color:inherit">En route</h2>
+    <p class="tx" id="erNote">Listen to the first-due officer. You arrive after the first three units.</p>
+    <div class="row"><button class="btn big" type="button" id="erSkip">Skip to arrival</button></div>
+  </div>
+  <div class="panel"><div class="row" style="justify-content:space-between"><h3>Radio</h3><span class="muted" style="font-size:.85rem">Newest at the top</span></div><div class="radio" id="erLog" aria-live="polite"></div></div>
 </section>
 
 <!-- APPROACH -->
@@ -410,8 +431,9 @@ img { max-width: 100%; }
       <div class="panel"><div class="row" style="justify-content:space-between"><h3>Radio</h3><span class="muted" style="font-size:.85rem" id="radioHint">Newest at the top</span></div><div class="radio" id="radioLog" aria-live="polite"></div></div>
     </div>
     <div style="display:grid;gap:20px;min-width:0;align-content:start">
+      <div class="panel" id="bcPanel" hidden><h3>Battalion checklist</h3><ul class="checklist" id="bcList"></ul></div>
       <div class="panel">
-        <h3>Give an assignment</h3>
+        <h3 id="assignHead">Give an assignment</h3>
         <p class="muted" style="font-size:.92rem" id="assignHint"></p>
         <div class="ptt-row">
           <button class="ptt" type="button" id="ptt4Btn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
@@ -451,7 +473,7 @@ img { max-width: 100%; }
       <div class="panel"><details><summary>What you got right (<span id="passCount">0</span>)</summary><ul class="items" id="passList" style="margin-top:12px"></ul></details></div>
     </div>
     <div style="display:grid;gap:20px;min-width:0">
-      <div class="panel"><h3>Model report</h3><p class="model" id="modelText"></p><span class="eyebrow">Model 360 update</span><p class="model" id="model360Text"></p><button class="btn quiet small" type="button" id="speakModel">Read it aloud</button></div>
+      <div class="panel"><h3 id="modelHead">Model report</h3><p class="model" id="modelText"></p><span class="eyebrow" id="model360Head">Model 360 update</span><p class="model" id="model360Text"></p><button class="btn quiet small" type="button" id="speakModel">Read it aloud</button></div>
       <div class="panel"><h3>Scenario facts</h3><dl class="kv" id="facts"></dl></div>
       <div class="scene" id="sceneDebrief"><img alt="Seat of the fire"><canvas></canvas><span class="badge" id="debriefBadge"></span></div>
       <div class="row"><button class="btn" type="button" id="againBtn">Next random call</button><button class="btn ghost" type="button" id="sameBtn">Same building</button></div>
@@ -602,6 +624,8 @@ img { max-width: 100%; }
     <h3>Your company</h3>
     <div class="grid2">
       <label class="f">Your unit <select id="sUnit"></select><span class="hint">Your agency's apparatus list. You're always first due.</span></label>
+      <label class="f">Your battalion <select id="sBcUnit"></select><span class="hint">Used when you respond as a battalion chief. You arrive after the first three units.</span></label>
+      <label class="f">First-due officer (battalion) <select id="sIcErr"><option value="on">Sometimes calls the strategy wrong</option><option value="off">Always calls it right</option></select></label>
       <label class="f">Unit delays <select id="sDelays"><option value="off">Everyone responds on time</option><option value="on">Sometimes a unit is delayed</option></select></label>
       <label class="f">Unit readbacks <select id="sUnitErr"><option value="on">Units sometimes repeat it back wrong</option><option value="off">Units always repeat it back right</option></select></label>
       <label class="f">Dispatch readback <select id="sDispErr"><option value="on">Dispatch sometimes gets it wrong</option><option value="off">Dispatch always gets it right</option></select></label>
@@ -1270,8 +1294,11 @@ const FX = (() => {
   const scenes = {};
   const scene = id => scenes[id] || (scenes[id] = new FX.Scene($('#' + id)));
   const defaultUnit = () => { const e = (S.apparatus || []).find(a => a.type === 'engine'); return e ? e.name : 'Engine 1'; };
+  const defaultBc = () => { const e = (S.apparatus || []).find(a => a.type === 'battalion'); return e ? e.name : 'Battalion 1'; };
   const settings = () => ({ unit: store.get('unit', '') || defaultUnit(), aids: store.get('aids', 'on'), voice: store.get('voice', 'on'),
-    delays: store.get('delays', 'off'), dispErr: store.get('dispErr', 'on'), unitErr: store.get('unitErr', 'on') });
+    delays: store.get('delays', 'off'), dispErr: store.get('dispErr', 'on'), unitErr: store.get('unitErr', 'on'),
+    role: store.get('role', 'engine'), bcUnit: store.get('bcUnit', '') || defaultBc(), icErr: store.get('icErr', 'on') });
+  const isBC = () => S.mode === 'battalion';
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2600); }
 
@@ -1344,9 +1371,10 @@ const FX = (() => {
   function go(name) {
     $$('section[data-screen]').forEach(s => s.hidden = s.dataset.screen !== name);
     $('#bar').hidden = name === 'login';
-    $$('.bar nav button').forEach(b => b.setAttribute('aria-current', b.dataset.nav === name || (b.dataset.nav === 'home' && ['dispatch', 'approach', 'scene', 'walk', 'command', 'debrief'].includes(name)) ? 'page' : 'false'));
+    $$('.bar nav button').forEach(b => b.setAttribute('aria-current', b.dataset.nav === name || (b.dataset.nav === 'home' && ['dispatch', 'enroute', 'approach', 'scene', 'walk', 'command', 'debrief'].includes(name)) ? 'page' : 'false'));
     if (name !== 'scene') Speech.stop();
-    if (name !== 'command' && name !== 'debrief') { try { speechSynthesis.cancel(); } catch { } }
+    if (name !== 'command' && name !== 'debrief' && name !== 'enroute') { try { speechSynthesis.cancel(); } catch { } }
+    if (name !== 'enroute') clearTimeout(enroute.h);
     if (name !== 'approach') clearInterval(respond.h);
     for (const k in scenes) if (!$('#' + k).closest('section').hidden) scenes[k].play(); else scenes[k].pause();
     window.scrollTo(0, 0);
@@ -1364,6 +1392,7 @@ const FX = (() => {
     $('#homeDept').textContent = s.mode === 'sheets' ? `${s.dept.name} · your agency's buildings` : `${s.dept.name} · demo mode`;
     $('#navAdmin').hidden = s.role !== 'admin'; $('#navUnits').hidden = s.role !== 'admin';
     $('#libCount').textContent = `${S.buildings.length} buildings`;
+    drawRole();
     $('#lib').innerHTML = S.buildings.map((b, i) => `
       <article class="bldg">
         <div class="thumb"><img alt="${esc(b.name)}, side Alpha" data-thumb="${i}"></div>
@@ -1378,6 +1407,13 @@ const FX = (() => {
     const hist = store.get('history', []).filter(h => h.email === s.email).slice(0, 8);
     $('#histEmpty').hidden = hist.length > 0; $('#histTable').hidden = !hist.length;
     $('#histTable tbody').innerHTML = hist.map(h => `<tr><td>${esc(new Date(h.ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td><td>${esc(h.building)}</td><td>${esc(h.inv)}</td><td><strong>${h.score}</strong></td></tr>`).join('');
+  }
+  function drawRole() {
+    const st = settings();
+    $$('#roleSel [data-role]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.role === st.role)));
+    $('#roleHint').textContent = st.role === 'battalion'
+      ? `As ${st.bcUnit}: hear the first-due report, arrive after the first three units, take command, start the 10-minute timer, call more alarms if needed, and assign units.`
+      : `As ${st.unit}: first due. Give the initial radio report, walk the 360, then assign arriving units.`;
   }
   /* ---------- scenario flow: tone out, respond, approach, arrive ---------- */
   const Tones = (() => {
@@ -1399,7 +1435,7 @@ const FX = (() => {
     };
   })();
   async function start(b, test) {
-    S.b = b; S.sc = null; S.out = null; S.seen = new Set(['A']); S.did360 = false; S.units = []; S.t0 = 0; S.readback = ''; S.skip = 0; S.radio = []; S.announced = new Set(); S.cmd = false; S.report360 = '';
+    S.b = b; S.sc = null; S.out = null; S.seen = new Set(['A']); S.did360 = false; S.units = []; S.t0 = 0; S.readback = ''; S.skip = 0; S.radio = []; S.announced = new Set(); S.cmd = false; S.report360 = ''; S.bc = null; S.timerSaid = false;
     $('#assignText').value = '';
     Tones.prime();
     $('#dispText').textContent = 'Dispatching…';
@@ -1411,8 +1447,12 @@ const FX = (() => {
     go('dispatch');
     try {
       const st = settings();
-      S.sc = await Server.call('startScenario', { buildingId: b.id, unit: st.unit, delays: st.delays === 'on', dispatchErrors: st.dispErr === 'on', unitErrors: st.unitErr === 'on', test });
+      S.mode = st.role === 'battalion' ? 'battalion' : 'engine';
+      S.sc = await Server.call('startScenario', { buildingId: b.id, unit: isBC() ? st.bcUnit : st.unit, mode: S.mode, delays: st.delays === 'on', dispatchErrors: st.dispErr === 'on', unitErrors: st.unitErr === 'on', icErrors: st.icErr === 'on', test });
       S.units = S.sc.units || [];
+      if (S.sc.mode !== 'battalion') S.mode = 'engine';
+      S.bc = S.sc.bc || null;
+      $('#unitsNote').textContent = isBC() ? 'Times are minutes after the first-due unit arrives.' : 'Times are minutes after you arrive.';
       $('#dispText').textContent = S.sc.dispatch;
       renderUnits($('#unitsTone'), false);
       $('#respondBtn').disabled = false; $('#replayBtn').disabled = false;
@@ -1426,22 +1466,91 @@ const FX = (() => {
   }
   async function respond() {
     try { speechSynthesis.cancel(); } catch { }
+    if (isBC()) return enroute();
+    approach();
+  }
+  const arriveNext = () => isBC() ? arriveBC() : arrive();
+  async function approach() {
     const ap = S.b.approach;
-    if (!ap) return arrive();
+    if (!ap) return arriveNext();
     go('approach');
     try {
       const src = await srcOf(S.b, 'E');
-      if (!src) return arrive();
+      if (!src) return arriveNext();
       scene('sceneApproach').show({ src, plume: { x: ap.x, y: ap.y, level: S.sc.plume }, wind: S.sc.wind });
-    } catch { return arrive(); }
+    } catch { return arriveNext(); }
     let n = 6; $('#countdown').textContent = 'On scene in ' + n;
     clearInterval(respond.h);
     respond.h = setInterval(() => {
       n--;
       if (n > 0) { $('#countdown').textContent = 'On scene in ' + n; return; }
       clearInterval(respond.h);
-      if (!$('section[data-screen=approach]').hidden) arrive();
+      if (!$('section[data-screen=approach]').hidden) arriveNext();
     }, 1000);
+  }
+
+  /* ---------- battalion chief: en route, then take command ---------- */
+  const mmss = m => `${Math.floor(m)}:${String(Math.round((m % 1) * 60)).padStart(2, '0')}`;
+  function enroute() {
+    go('enroute');
+    const tl = (S.sc.timeline || []).slice(), eta = S.bc.eta;
+    $('#erUnit').textContent = (S.units.find(u => u.mine) || {}).name || 'Battalion';
+    $('#erNote').textContent = `Listen to the first-due officer. You arrive ${eta} minutes after ${S.bc.ic}, after the first three units.`;
+    $('#erLog').innerHTML = ''; S.radio = [];
+    let i = 0, minute = 0;
+    const show = m => {
+      S.radio.unshift({ from: m.from, text: m.text, kind: m.kind, at: m.m });
+      $('#erLog').innerHTML = S.radio.map(x => `<div class="m ${x.kind || ''}"><b>${esc(x.from)}</b>${esc(x.text)}</div>`).join('');
+    };
+    const step = () => {
+      if ($('section[data-screen=enroute]').hidden) return;
+      if (i >= tl.length) { $('#erClock').textContent = mmss(eta); enroute.h = setTimeout(() => { if (!$('section[data-screen=enroute]').hidden) approach(); }, 2500); return; }
+      const m = tl[i++]; minute = m.m; $('#erClock').textContent = mmss(minute);
+      show(m);
+      const next = () => { enroute.h = setTimeout(step, 900); };
+      if (settings().voice === 'on' && 'speechSynthesis' in window) {
+        try { const u = new SpeechSynthesisUtterance(m.text); u.rate = 1.1; let done = false; const go2 = () => { if (!done) { done = true; next(); } }; u.onend = go2; u.onerror = go2; speechSynthesis.speak(u); setTimeout(go2, 1500 + m.text.length * 75); }
+        catch { enroute.h = setTimeout(step, 2200 + m.text.length * 25); }
+      } else enroute.h = setTimeout(step, 2200 + m.text.length * 25);
+    };
+    clearTimeout(enroute.h); step();
+  }
+  function skipEnroute() {
+    clearTimeout(enroute.h); try { speechSynthesis.cancel(); } catch { }
+    const shown = S.radio.length, tl = S.sc.timeline || [];
+    tl.slice(shown).forEach(m => S.radio.unshift({ from: m.from, text: m.text, kind: m.kind, at: m.m }));
+    approach();
+  }
+  function arriveBC() {
+    try { speechSynthesis.cancel(); } catch { }
+    clearInterval(respond.h);
+    const tl = S.sc.timeline || [];
+    if (S.radio.length < tl.length) { S.radio = []; tl.forEach(m => S.radio.unshift({ from: m.from, text: m.text, kind: m.kind, at: m.m })); }
+    S.t0 = Date.now(); S.skip = S.bc.eta * 60; S.cmd = true;
+    S.announced = new Set(S.units.filter(u => u.eta < S.bc.eta || u.mine).map(u => u.name));
+    go('command');
+    const cmd = S.b.command + ' Command', me = (S.units.find(u => u.mine) || {}).name || 'Battalion 1';
+    $('#cmdBadge').textContent = me + ' · side Alpha';
+    $('#assignHead').textContent = 'Radio';
+    $('#assignText').placeholder = `${S.dispatchName} from ${me}, ${me} is assuming ${cmd}…`;
+    $('#assignHint').textContent = `Take command from ${S.bc.ic}: "${S.dispatchName} from ${me}, ${me} is assuming ${cmd}," confirm the strategy, and confirm each unit's task, location and objective. Then ask for the 10-minute timer, call a greater alarm if this fire needs one with a level two staging area and frequency, and assign units as they arrive.`;
+    $('#assignNote').hidden = true;
+    radio('', `You're on scene. ${S.bc.ic} has ${cmd}.`, 'note');
+    showScene('sceneCmd', 'A');
+    tick(); cmdTick(); drawBc();
+  }
+  function drawBc() {
+    const on = isBC() && settings().aids === 'on';
+    $('#bcPanel').hidden = !on;
+    if (!on || !S.bc) return;
+    const b = S.bc;
+    const items = [
+      [b.transfer, 'Command transfer: strategy and every unit\'s TLO', b.transfer ? 'You have command' : 'From ' + b.ic],
+      [b.timerAt != null, '10-minute timer', b.timerAt != null ? 'Started' : ''],
+      [b.alarm > 1, 'Greater alarm, if this fire needs one', b.alarm > 1 ? ['', '', '2nd', '3rd', '4th'][b.alarm] + ' alarm' : ''],
+      [!!b.staging, 'Level two staging area', b.staging || ''],
+      [!!b.freq, 'Staging response frequency', b.freq || '']];
+    $('#bcList').innerHTML = items.map(([done, label, note]) => `<li class="${done ? 'done' : ''}"><span>${esc(label)}</span>${note ? `<small>${esc(note)}</small>` : ''}</li>`).join('');
   }
   function say(text) {
     try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.02; speechSynthesis.speak(u); } catch { }
@@ -1571,6 +1680,8 @@ const FX = (() => {
     go('command');
     const cmd = S.b.command + ' Command';
     $('#cmdBadge').textContent = cmd + ' · side Alpha';
+    $('#assignHead').textContent = 'Give an assignment'; $('#bcPanel').hidden = true;
+    $('#assignText').placeholder = `Engine 2 from ${cmd}, forward lay to Engine 1 for water supply.`;
     const mine = (S.units.find(u => u.mine) || {}).name || 'Engine 1';
     const ex = S.units.find(u => !u.mine && u.type !== 'engine' && u.type !== 'battalion') || S.units.find(u => !u.mine) || { name: 'Engine 2' };
     $('#assignHint').textContent = `Call the unit, then give the task, location, and objective: "${ex.name} from ${cmd}, stretch a 1¾ from ${mine} to side Alpha, floor 1, for primary search." Level-one engines can take a forward, reverse, split, or driveway lay, water forward, or relay pump.`;
@@ -1585,9 +1696,15 @@ const FX = (() => {
     const cmd = S.b.command + ' Command';
     S.units.filter(u => !u.mine && !S.announced.has(u.name) && u.eta * 60 <= elapsed()).sort((a, b) => a.eta - b.eta).forEach(u => {
       S.announced.add(u.name);
-      const txt = `${cmd} from ${u.name}, ${STATUS_RADIO[u.status] || 'on scene'}.`;
+      let txt = `${cmd} from ${u.name}, ${STATUS_RADIO[u.status] || 'on scene'}.`;
+      if (isBC() && u.status === 'staging') txt = S.bc && S.bc.staging ? `${cmd} from ${u.name}, in level two staging at ${S.bc.staging}.` : `${cmd} from ${u.name}, approaching the scene. Where do you want us to stage?`;
       radio(u.name, txt, 'unit'); speakQ(txt);
     });
+    if (isBC() && S.bc && S.bc.timerAt != null && !S.timerSaid && elapsed() >= (S.bc.timerAt + 10) * 60) {
+      S.timerSaid = true;
+      const txt = `${cmd}, ${S.dispatchName}, 10 minutes on your timer.`;
+      radio(S.dispatchName, txt, 'disp'); speakQ(txt);
+    }
     if (t !== cmdTick.last) { cmdTick.last = t; renderCmdUnits(); }
   }
   function renderCmdUnits() {
@@ -1595,7 +1712,7 @@ const FX = (() => {
     $('#unitsCmd').innerHTML = S.units.slice().sort((x, y) => (y.mine ? 1 : 0) - (x.mine ? 1 : 0) || x.eta - y.eta).map(u => {
       const here = u.mine || u.eta * 60 <= sec;
       const cls = ['u']; let eta;
-      if (u.mine) { cls.push('mine'); eta = 'Command'; }
+      if (u.mine) { cls.push('mine'); eta = isBC() && !(S.bc && S.bc.transfer) ? 'On scene' : 'Command'; }
       else if (!here) { cls.push('waiting'); eta = Math.ceil((u.eta * 60 - sec) / 60) + ' min'; }
       else { cls.push('tap'); if (u.task) cls.push('assigned'); eta = u.task ? 'Assigned' : STATUS_TEXT[u.status] || 'On scene'; }
       const meta = [TYPE_LABEL[u.type] || u.type, u.staff ? u.staff + ' staffed' : ''].filter(Boolean).join(' · ');
@@ -1605,8 +1722,9 @@ const FX = (() => {
   function skipAhead() {
     const sec = elapsed();
     const next = S.units.filter(u => !u.mine && u.eta * 60 > sec).sort((a, b) => a.eta - b.eta)[0];
-    if (!next) { toast('Every unit is on scene.'); return; }
-    S.skip += next.eta * 60 - sec + 0.5;
+    const timer = isBC() && S.bc && S.bc.timerAt != null && !S.timerSaid ? (S.bc.timerAt + 10) * 60 : Infinity;
+    if (!next && timer === Infinity) { toast('Every unit is on scene.'); return; }
+    S.skip += Math.min(next ? next.eta * 60 : Infinity, timer) - sec + 0.5;
     cmdTick(); renderCmdUnits();
   }
   async function sendAssign() {
@@ -1615,6 +1733,20 @@ const FX = (() => {
     Speech.stop();
     const btn = $('#sendAssign'); btn.disabled = true; btn.textContent = 'Sending…';
     $('#assignNote').hidden = true;
+    if (isBC()) {
+      try {
+        const r = await Server.call('radio', { scenarioId: S.sc.scenarioId, text, minute: Math.floor(elapsed() / 60) });
+        if (r.note) { $('#assignNote').hidden = false; $('#assignNote').textContent = r.note; return; }
+        const me = (S.units.find(u => u.mine) || {}).name;
+        radio(S.bc && S.bc.transfer ? S.b.command + ' Command' : me, text, 'me');
+        (r.replies || []).forEach(x => { radio(x.from, x.text, x.kind); speakQ(x.text); });
+        if (r.units) S.units = r.units;
+        if (r.bc) S.bc = r.bc;
+        $('#assignText').value = ''; renderCmdUnits(); drawBc();
+      } catch (e) { if (e.code === 'auth') return expired(); toast("Nobody heard you. " + e.message); }
+      finally { btn.disabled = false; btn.textContent = 'Send'; }
+      return;
+    }
     try {
       const r = await Server.call('assign', { scenarioId: S.sc.scenarioId, text, minute: Math.floor(elapsed() / 60) });
       if (r.note) { $('#assignNote').hidden = false; $('#assignNote').textContent = r.note; return; }
@@ -1627,7 +1759,8 @@ const FX = (() => {
   }
 
   /* ---------- debrief ---------- */
-  const AREA = { order: 'Order', terms: 'Approved terms', missing: 'Missing part', decision: 'Tactical call', dispatch: 'Dispatch readback', command: 'Assignment' };
+  const AREA = { order: 'Order', terms: 'Approved terms', missing: 'Missing part', decision: 'Tactical call', dispatch: 'Dispatch readback', command: 'Assignment',
+    transfer: 'Command transfer', strategy: 'Strategy', timer: '10-minute timer', alarm: 'Greater alarm', staging: 'Level two staging' };
   const ICON = { fail: '!', warn: '?', pass: '✓', info: 'i' };
   async function finish() {
     Speech.stop();
@@ -1652,7 +1785,11 @@ const FX = (() => {
     $('#scoreHead').textContent = score >= 90 ? 'Ready for the radio' : score >= 70 ? 'Close. Tighten it up.' : 'Run it again';
     const both = all.concat(r.items360 || []);
     const fails = both.filter(i => i.status === 'fail').length, warns = both.filter(i => i.status === 'warn').length;
-    $('#scoreSub').textContent = `${fails} to fix, ${warns} to improve. Report given ${Math.floor(S.tReport / 60)}:${String(S.tReport % 60).padStart(2, '0')} after arrival.`;
+    $('#scoreSub').textContent = r.mode === 'battalion'
+      ? `${fails} to fix, ${warns} to improve. ` + (r.transferMinute != null ? `Command taken ${r.transferMinute <= 0 ? 'as you arrived' : r.transferMinute + ' min after you arrived'}.` : 'You never took command.')
+      : `${fails} to fix, ${warns} to improve. Report given ${Math.floor(S.tReport / 60)}:${String(S.tReport % 60).padStart(2, '0')} after arrival.`;
+    $('#modelHead').textContent = r.mode === 'battalion' ? 'Model command transfer' : 'Model report';
+    $('#model360Head').textContent = r.mode === 'battalion' ? 'Model greater alarm' : 'Model 360 update';
     $('#scoreBldg').textContent = `${b.name} · ${r.invLabel}`;
     const li = i => `<li class="${i.status}"><span class="ic">${ICON[i.status]}</span><span>${i.area ? `<span class="area">${AREA[i.area] || ''}</span>` : ''}${esc(i.msg)}</span></li>`;
     const order = { fail: 0, warn: 1, info: 2 };
@@ -1695,7 +1832,7 @@ const FX = (() => {
     return out.join(' ');
   }
   function saveHistory(r) {
-    const rec = { ts: Date.now(), email: S.session.email, building: S.b.name, inv: r.invLabel, score: r.score + (r.command ? ' · cmd ' + r.command.score : '') };
+    const rec = { ts: Date.now(), email: S.session.email, building: S.b.name + (r.mode === 'battalion' ? ' (BC)' : ''), inv: r.invLabel, score: r.score + (r.command ? ' · cmd ' + r.command.score : '') };
     const h = store.get('history', []); h.unshift(rec); store.set('history', h.slice(0, 60));
   }
 
@@ -1741,6 +1878,10 @@ const FX = (() => {
     const names = S.apparatus.map(a => a.name);
     if (names.indexOf(st.unit) < 0) names.unshift(st.unit);
     $('#sUnit').innerHTML = names.map(n => { const a = S.apparatus.find(x => x.name === n); return `<option value="${esc(n)}">${esc(n)}${a ? ' · ' + esc(TYPE_LABEL[a.type] || a.type) : ''}</option>`; }).join('');
+    const bcs = S.apparatus.filter(a => a.type === 'battalion').map(a => a.name);
+    if (bcs.indexOf(st.bcUnit) < 0) bcs.unshift(st.bcUnit);
+    $('#sBcUnit').innerHTML = bcs.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+    $('#sBcUnit').value = st.bcUnit; $('#sIcErr').value = st.icErr;
     $('#sUnit').value = st.unit; $('#sAids').value = st.aids; $('#sVoice').value = st.voice; $('#sDelays').value = st.delays; $('#sDispErr').value = st.dispErr; $('#sUnitErr').value = st.unitErr;
     $('#connMode').textContent = S.session.mode === 'sheets' ? `${S.session.dept.name}. You're signed in as ${S.session.email} (${S.session.role === 'admin' ? 'admin' : 'member'}). You see only your agency's buildings and the shared samples.` : 'Demo mode. Buildings you add stay on this device. Your training officer sets up the shared Google Sheet in config.js.';
     $('#rulesOrder tbody').innerHTML = S.order.map((o, i) => `<tr><td>${i + 1}</td><td>${esc(o.label)}</td><td>${o.required === 'yes' ? 'Required' : o.required === 'warn' ? 'Recommended' : 'Optional'}</td><td>${esc(o.hint)}</td></tr>`).join('');
@@ -2221,9 +2362,18 @@ const FX = (() => {
     $('#rulesSaveRow').hidden = name === 'units'; $('#rulesErr').hidden = true;
     if (name !== 'units' && !RU.data) loadRules();
   }
+  /* A server still running the previous Code.gs sends involvement words instead of percentages. Say how to fix it instead of failing. */
+  const OLD_SERVER = 'Your Apps Script is still running the previous Code.gs, which has no involvement percentages. In Apps Script, paste in the new Code.gs, save, then Deploy > Manage deployments > Edit (pencil) > Version: New version > Deploy. Then reload this page.';
+  const rulesCurrent = d => !!(d && d.rules && Array.isArray(d.rules.bands) && d.tactics && d.tactics.defensivePct != null);
+  function showOldServer() {
+    $('#rulesHint').textContent = '';
+    $('#rulesErr').hidden = false; $('#rulesErr').textContent = OLD_SERVER;
+    $('#tacticsBody').hidden = true; $('#rulesBody').hidden = true; $('#rulesSaveRow').hidden = false;
+    ['#saveRules', '#undoRules', '#resetRules'].forEach(id => $(id).hidden = true);
+  }
   async function loadRules() {
     $('#rulesHint').textContent = 'Loading…';
-    try { const d = await Server.call('getRules', {}); RU.data = d; RU.orig = JSON.stringify(d); drawRules(); }
+    try { const d = await Server.call('getRules', {}); if (!rulesCurrent(d)) return showOldServer(); RU.data = d; RU.orig = JSON.stringify(d); drawRules(); }
     catch (e) { if (e.code === 'auth') return expired(); $('#rulesHint').textContent = "Couldn't load tactics and rules. " + e.message; }
   }
   const rulesDirty = () => { $('#rulesHint').textContent = RU.data && JSON.stringify(RU.data) !== RU.orig ? 'Unsaved changes' : ''; };
@@ -2344,7 +2494,7 @@ const FX = (() => {
     $('#saveRules').onclick = async () => {
       const err = $('#rulesErr'); err.hidden = true;
       const btn = $('#saveRules'); btn.disabled = true; $('#rulesHint').textContent = 'Saving…';
-      try { const d = await Server.call('saveRules', { tactics: RU.data.tactics, rules: RU.data.rules }); RU.data = d; RU.orig = JSON.stringify(d); drawRules(); toast('Tactics and rules saved. They apply to the next call.'); }
+      try { const d = await Server.call('saveRules', { tactics: RU.data.tactics, rules: RU.data.rules }); if (!rulesCurrent(d)) return showOldServer(); RU.data = d; RU.orig = JSON.stringify(d); drawRules(); toast('Tactics and rules saved. They apply to the next call.'); }
       catch (e) { if (e.code === 'auth') return expired(); err.hidden = false; err.textContent = e.message; rulesDirty(); }
       finally { btn.disabled = false; }
     };
@@ -2353,7 +2503,7 @@ const FX = (() => {
       const b = $('#resetRules');
       if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to use the defaults'; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Go back to the default'; }, 4000); return; }
       b.dataset.armed = ''; b.textContent = 'Go back to the default';
-      try { const d = await Server.call('saveRules', { reset: true }); RU.data = d; RU.orig = JSON.stringify(d); drawRules(); toast('Your agency now uses the default tactics and rules.'); }
+      try { const d = await Server.call('saveRules', { reset: true }); if (!rulesCurrent(d)) return showOldServer(); RU.data = d; RU.orig = JSON.stringify(d); drawRules(); toast('Your agency now uses the default tactics and rules.'); }
       catch (e) { if (e.code === 'auth') return expired(); toast("Couldn't reset. " + e.message); }
     };
   }
@@ -2379,7 +2529,9 @@ const FX = (() => {
     $('#randomBtn').onclick = () => start(S.buildings[Math.floor(Math.random() * S.buildings.length)]);
     $('#lib').addEventListener('click', e => { const b = e.target.closest('[data-run]'); if (b) start(S.buildings[+b.dataset.run]); });
     $('#respondBtn').onclick = respond;
-    $('#arriveNowBtn').onclick = arrive;
+    $('#arriveNowBtn').onclick = arriveNext;
+    $('#erSkip').onclick = skipEnroute;
+    $('#roleSel').addEventListener('click', e => { const b = e.target.closest('[data-role]'); if (!b) return; store.set('role', b.dataset.role); drawRole(); });
     $('#replayBtn').onclick = () => S.sc && say(S.sc.dispatch);
     $('#pttBtn').onclick = () => Speech.toggle($('#pttBtn'), $('#pttState'), $('#report'), $('#micNote'));
     $('#ptt2Btn').onclick = () => Speech.toggle($('#ptt2Btn'), $('#ptt2State'), $('#report360'), $('#micNote'));
@@ -2403,7 +2555,7 @@ const FX = (() => {
     $('#sameBtn').onclick = () => start(S.b);
     $('#speakModel').onclick = () => say($('#modelText').textContent + ' ' + $('#model360Text').textContent);
     $('#retryGrade').onclick = finish;
-    $('#saveSettings').onclick = () => { store.set('unit', $('#sUnit').value); store.set('aids', $('#sAids').value); store.set('voice', $('#sVoice').value); store.set('delays', $('#sDelays').value); store.set('dispErr', $('#sDispErr').value); store.set('unitErr', $('#sUnitErr').value); toast('Saved.'); };
+    $('#saveSettings').onclick = () => { store.set('unit', $('#sUnit').value); store.set('aids', $('#sAids').value); store.set('voice', $('#sVoice').value); store.set('delays', $('#sDelays').value); store.set('dispErr', $('#sDispErr').value); store.set('unitErr', $('#sUnitErr').value); store.set('bcUnit', $('#sBcUnit').value); store.set('icErr', $('#sIcErr').value); toast('Saved.'); };
     $('#signOut').onclick = () => { if (S.session && S.session.mode === 'sheets') Api.call('signOut').catch(() => { }); store.del('token'); store.del('session'); S.session = null; loginStage('email'); go('login'); };
     // admin
     $('#photoTabs').addEventListener('click', e => { const b = e.target.closest('[data-ptab]'); if (b) { A.side = b.dataset.ptab; A.sel = -1; renderTagger(); } });
