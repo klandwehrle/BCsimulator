@@ -120,6 +120,18 @@ table.edit tr.off td { opacity: .5; } table.edit tr.off td:first-child, table.ed
   #apTable td.chk { text-align: left; } #apTable td.chk input { width: 22px; }
   #apTable tr.off td { opacity: 1; } #apTable tr.off { opacity: .6; }
 }
+.fieldset { display: grid; gap: 6px; }
+.fieldset .hint { font-size: .85rem; color: var(--muted); }
+.chips button[aria-pressed="true"]::before { content: "✓ "; }
+.prio { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; counter-reset: p; }
+.prio li { counter-increment: p; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+.prio li::before { content: counter(p); font-family: var(--f-mono); font-size: .8rem; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 4px; background: var(--chip); }
+.prio li .mv { display: flex; gap: 4px; }
+.prio li .mv button { min-width: 36px; min-height: 34px; border: 1px solid var(--line); background: var(--card); border-radius: 6px; cursor: pointer; font-weight: 700; }
+.prio li.add { grid-template-columns: minmax(0, 1fr); background: none; border-style: dashed; }
+.prio li.add::before { content: none; }
+.fitgrid td.chk, .fitgrid th.c { text-align: center; } .fitgrid td.chk input { width: 20px; height: 20px; }
+.linegrid td { vertical-align: middle; } .linegrid select[data-alarm] { min-width: 160px; } .linegrid select[data-pref] { min-width: 130px; } .linegrid .chips button { min-height: 32px; padding: 2px 10px; font-size: .85rem; }
 table.edit tfoot td { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); padding: 6px 8px; }
 .scroll-x { overflow-x: auto; }
 
@@ -263,7 +275,7 @@ img { max-width: 100%; }
     <nav>
       <button type="button" data-nav="home">Run</button>
       <button type="button" data-nav="admin" id="navAdmin">Add</button>
-      <button type="button" data-nav="units" id="navUnits">Units</button>
+      <button type="button" data-nav="units" id="navUnits">Agency</button>
       <button type="button" data-nav="settings">Setup</button>
     </nav>
   </div>
@@ -500,10 +512,15 @@ img { max-width: 100%; }
 
 <!-- UNITS -->
 <section data-screen="units" hidden>
-  <div style="display:grid;gap:6px"><div class="eyebrow" id="unitsDept"></div><h2>Units and stations</h2>
-    <p class="muted">Set what your agency sends on a structure fire. Members see these units at tone-out, and dispatch uses them to balance or upgrade the alarm.</p></div>
-  <p class="note bad" id="unitsDenied" hidden>Only agency admins can change units and stations.</p>
+  <div style="display:grid;gap:6px"><div class="eyebrow" id="unitsDept"></div><h2>Agency setup</h2></div>
+  <p class="note bad" id="unitsDenied" hidden>Only agency admins can change agency setup.</p>
+  <div class="tabs" id="agTabs" role="tablist">
+    <button type="button" data-agtab="units" aria-pressed="true">Units and stations</button>
+    <button type="button" data-agtab="tactics" aria-pressed="false">Tactics</button>
+    <button type="button" data-agtab="rules" aria-pressed="false">Size and lines</button>
+  </div>
   <div id="unitsBody" style="display:grid;gap:20px">
+  <p class="muted">Set what your agency sends on a structure fire. Members see these units at tone-out, and dispatch uses them to balance or upgrade the alarm.</p>
   <p class="note" id="unitsDefaultNote" hidden></p>
   <div class="panel">
     <h3>Dispatch center</h3>
@@ -529,6 +546,44 @@ img { max-width: 100%; }
   <p class="note bad" id="unitsErr" hidden></p>
   <div class="row"><button class="btn big" type="button" id="saveUnits">Save units and plans</button><button class="btn quiet" type="button" id="resetUnits">Undo changes</button><span class="muted" id="unitsHint"></span></div>
   </div>
+
+  <div id="tacticsBody" style="display:grid;gap:20px" hidden>
+    <p class="muted">How the simulator judges your members' tactical calls. Pick from the choices; nothing here is typed.</p>
+    <p class="note" id="rulesDefaultNote" hidden></p>
+    <div class="panel"><h3>Strategy</h3>
+      <div class="fieldset"><span class="eyebrow">Defensive when the fire is</span><div class="chips" data-tk="defensive" data-opts="inv"></div><span class="hint">Every other fire is offensive.</span></div></div>
+    <div class="panel"><h3>Size-up objectives</h3><p class="muted" style="font-size:.92rem">What the first-due unit's task, location, and objective must include.</p>
+      <div class="fieldset"><span class="eyebrow">Offensive</span><div class="chips" data-tk="wsObj.offensive" data-opts="wsobj"></div></div>
+      <div class="fieldset"><span class="eyebrow">Offensive with a victim showing</span><div class="chips" data-tk="wsObj.victim" data-opts="wsobj"></div></div>
+      <div class="fieldset"><span class="eyebrow">Defensive</span><div class="chips" data-tk="wsObj.defensive" data-opts="wsobj"></div></div>
+      <div class="fieldset"><span class="eyebrow">Suggest check for extension when the fire is</span><div class="chips" data-tk="extInv" data-opts="inv"></div><span class="hint">Only below the top floor of a multi-story building. Pick none to turn it off.</span></div></div>
+    <div class="panel"><h3>Command priorities</h3><p class="muted" style="font-size:.92rem">The order command should fill tactical objectives as units arrive. Objectives the size-up already covers are skipped, and rescue is skipped when no victim is showing.</p>
+      <div class="grid2"><div class="fieldset"><span class="eyebrow">Offensive</span><ol class="prio" data-prio="offensive"></ol></div>
+      <div class="fieldset"><span class="eyebrow">Defensive</span><ol class="prio" data-prio="defensive"></ol></div></div>
+      <div class="fieldset"><span class="eyebrow">Add a backup line or check for extension when the fire is</span><div class="chips" data-tk="backupInv" data-opts="inv"></div><span class="hint">Also added whenever check for extension is suggested.</span></div></div>
+    <div class="panel"><h3>Which units fit each objective</h3><p class="muted" style="font-size:.92rem">A unit type that isn't picked gets a warning. Pick none for any type.</p>
+      <div class="scroll-x"><table class="t fitgrid" id="fitTable"></table></div></div>
+    <div class="panel"><h3>Assignment rules</h3>
+      <div class="fieldset"><span class="eyebrow">These objectives need a hose line</span><div class="chips" data-tk="lineFor" data-opts="need"></div></div>
+      <div class="fieldset"><span class="eyebrow">These objectives need a lay (forward, reverse, split, driveway, water forward, relay)</span><div class="chips" data-tk="layFor" data-opts="need"></div></div>
+      <div class="fieldset"><span class="eyebrow">These units must name the engine they pull a line from</span><div class="chips" data-tk="sourceFor" data-opts="type"></div></div>
+      <div class="fieldset"><span class="eyebrow">Floor rules</span><div class="scroll-x"><table class="t" id="floorTable"></table></div><span class="hint">A wrong floor for fire control is a miss; for the others it's a warning. Pick none for no floor rule.</span></div></div>
+    <div class="panel"><h3>How units report in</h3><div class="grid2" id="arrivalGrid"></div></div>
+    <div class="panel"><h3>Points</h3><p class="muted" style="font-size:.92rem">Taken off a score of 100.</p><div class="grid2" id="pointsGrid"></div></div>
+  </div>
+
+  <div id="rulesBody" style="display:grid;gap:20px" hidden>
+    <p class="muted">Building size by square footage, the lines that fit each occupancy and fire, and when a bigger alarm is expected.</p>
+    <p class="note" id="rulesDefaultNote2" hidden></p>
+    <div class="panel"><h3>Building size</h3><div class="grid2">
+      <label class="f">Small, up to (sq ft) <input type="number" id="szSmall" min="100" step="100"></label>
+      <label class="f">Medium, up to (sq ft) <input type="number" id="szMedium" min="100" step="100"></label>
+      <label class="f">Large, up to (sq ft) <input type="number" id="szLarge" min="100" step="100"><span class="hint">Anything bigger is mega.</span></label></div></div>
+    <div id="lineGrids" style="display:grid;gap:20px"></div>
+  </div>
+
+  <div id="rulesSaveRow" class="row" hidden><button class="btn big" type="button" id="saveRules">Save tactics and rules</button><button class="btn quiet" type="button" id="undoRules">Undo changes</button><button class="btn quiet" type="button" id="resetRules">Go back to the default</button><span class="muted" id="rulesHint"></span></div>
+  <p class="note bad" id="rulesErr" hidden></p>
 </section>
 
 <!-- SETTINGS -->
@@ -1986,10 +2041,11 @@ const FX = (() => {
   const dirty = () => { $('#unitsHint').textContent = JSON.stringify(U.data) === U.orig ? '' : 'Unsaved changes'; };
   async function renderUnitsScreen() {
     const ok = S.session.role === 'admin';
-    $('#unitsDenied').hidden = ok; $('#unitsBody').hidden = !ok;
-    if (!ok) return;
+    $('#unitsDenied').hidden = ok; $('#unitsBody').hidden = !ok; $('#agTabs').hidden = !ok;
+    if (!ok) { $('#tacticsBody').hidden = true; $('#rulesBody').hidden = true; $('#rulesSaveRow').hidden = true; return; }
     $('#unitsDept').textContent = `${S.session.dept.name} · ${S.session.mode === 'sheets' ? 'saves to the shared Sheet' : 'demo mode, saves on this device'}`;
     $('#unitsErr').hidden = true; $('#unitsHint').textContent = 'Loading…';
+    RU.data = null; RU.orig = ''; agTab('units');
     try { const d = await Server.call('getUnits', {}); U.data = d; U.orig = JSON.stringify(d); }
     catch (e) { if (e.code === 'auth') return expired(); $('#unitsHint').textContent = "Couldn't load your units. " + e.message; return; }
     $('#unitsHint').textContent = '';
@@ -2117,6 +2173,130 @@ const FX = (() => {
     const n = $(`#planTable [data-pl="${k}"][data-t="${ty}"]`); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch { } }
   }
 
+
+  /* ---------- admin: tactics and size/line rules, picked from lists ---------- */
+  const INV_UI = { smoke: 'Smoke only', room: 'One room', floor: 'Part of the building', full: 'Fully involved' };
+  const WSOBJ_UI = { firecontrol: 'Fire control', primarysearch: 'Primary search', rescue: 'Rescue', exposures: 'Exposure protection', checkext: 'Check for extension' };
+  const NEED_UI = { rescue: 'Rescue', firecontrol: 'Fire control', water: 'Water supply', search: 'Primary search', backup: 'Backup line / check for extension', vent: 'Ventilation',
+    utilities: 'Control utilities', rit: 'Rapid intervention (RIT)', medical: 'Medical / rehab', exposures: 'Exposure protection', ladders: 'Ladder the building' };
+  const LINE_UI = { '1.75': '1¾"', '2.5': '2½"', standpipe: 'Standpipe', bulkload: 'Bulk load', extended: 'Extended attack', deckgun: 'Deck gun', blitz: 'Blitz' };
+  const CAT_UI = { residential: 'Single family residential', multifamily: 'Multi-family residential', commercial: 'Commercial', industrial: 'Industrial', mixed: 'Mixed use' };
+  const STATUS_UI = { level1: 'Level one', onscene: 'On scene', staging: 'Level two staging' };
+  const OPTS = { inv: INV_UI, wsobj: WSOBJ_UI, need: NEED_UI, type: TYPE_LABEL };
+  const RU = { data: null, orig: '' };
+  const getPath = (o, p) => p.split('.').reduce((a, k) => a[k], o);
+  function agTab(name) {
+    $$('#agTabs [data-agtab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.agtab === name)));
+    $('#unitsBody').hidden = name !== 'units'; $('#tacticsBody').hidden = name !== 'tactics'; $('#rulesBody').hidden = name !== 'rules';
+    $('#rulesSaveRow').hidden = name === 'units'; $('#rulesErr').hidden = true;
+    if (name !== 'units' && !RU.data) loadRules();
+  }
+  async function loadRules() {
+    $('#rulesHint').textContent = 'Loading…';
+    try { const d = await Server.call('getRules', {}); RU.data = d; RU.orig = JSON.stringify(d); drawRules(); }
+    catch (e) { if (e.code === 'auth') return expired(); $('#rulesHint').textContent = "Couldn't load tactics and rules. " + e.message; }
+  }
+  const rulesDirty = () => { $('#rulesHint').textContent = RU.data && JSON.stringify(RU.data) !== RU.orig ? 'Unsaved changes' : ''; };
+  function drawRules() {
+    const d = RU.data, T = d.tactics, Rr = d.rules;
+    const note = d.isDefaultSet ? "You're editing the default tactics and rules. Agencies that haven't saved their own use these."
+      : d.usingDefaults ? 'Your agency uses the default tactics and rules. Change anything and save to make them your own.' : '';
+    ['#rulesDefaultNote', '#rulesDefaultNote2'].forEach(id => { $(id).hidden = !note; $(id).textContent = note; });
+    $('#resetRules').hidden = !!(d.isDefaultSet || d.usingDefaults);
+    $$('#tacticsBody .chips[data-tk]').forEach(el => {
+      const sel = getPath(T, el.dataset.tk) || [];
+      el.innerHTML = Object.entries(OPTS[el.dataset.opts]).map(([k, l]) => `<button type="button" data-v="${esc(k)}" aria-pressed="${sel.indexOf(k) >= 0}">${esc(l)}</button>`).join('');
+    });
+    drawPrio();
+    $('#fitTable').innerHTML = `<thead><tr><th>Objective</th>${UNIT_TYPES.map(t => `<th class="c">${esc(TYPE_LABEL[t])}</th>`).join('')}</tr></thead><tbody>` +
+      Object.keys(NEED_UI).map(n => `<tr><td>${esc(NEED_UI[n])}</td>${UNIT_TYPES.map(t => `<td class="chk"><input type="checkbox" data-fit="${n}" data-t="${t}"${(T.fit[n] || []).indexOf(t) >= 0 ? ' checked' : ''} aria-label="${esc(NEED_UI[n] + ': ' + TYPE_LABEL[t])}"></td>`).join('')}</tr>`).join('') + '</tbody>';
+    $('#floorTable').innerHTML = '<thead><tr><th>Objective</th><th class="c">Fire floor</th><th class="c">Floor above</th></tr></thead><tbody>' +
+      ['firecontrol', 'search', 'backup', 'rescue'].map(n => `<tr><td>${esc(NEED_UI[n])}</td>${['fire', 'above'].map(f => `<td class="chk"><input type="checkbox" data-floor="${n}" data-f="${f}"${(T.floors[n] || []).indexOf(f) >= 0 ? ' checked' : ''} aria-label="${esc(NEED_UI[n] + ': ' + (f === 'fire' ? 'fire floor' : 'floor above'))}"></td>`).join('')}</tr>`).join('') + '</tbody>';
+    $('#arrivalGrid').innerHTML = [['initialEngine', 'First-alarm engines'], ['initialOther', 'Other first-alarm units'], ['balance', 'Balance units'], ['2', '2nd alarm units'], ['3', '3rd alarm units']]
+      .map(([k, l]) => `<label class="f">${l}<select data-arr="${k}">${Object.entries(STATUS_UI).map(([v, t]) => `<option value="${v}"${T.arrival[k] === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>`).join('');
+    $('#pointsGrid').innerHTML = [['fail', 'A miss'], ['warn', 'A warning'], ['order', 'Out of order (size-up)']]
+      .map(([k, l]) => `<label class="f">${l}<select data-pt="${k}">${Array.from({ length: 21 }, (_, i) => `<option value="${i}"${T.points[k] === i ? ' selected' : ''}>${i} point${i === 1 ? '' : 's'}</option>`).join('')}</select></label>`).join('');
+    $('#szSmall').value = Rr.sizes.small; $('#szMedium').value = Rr.sizes.medium; $('#szLarge').value = Rr.sizes.large;
+    const ALARM_UI = n => n === 1 ? 'First alarm only' : ['', '', '2nd', '3rd', '4th'][n] + ' alarm';
+    $('#lineGrids').innerHTML = Object.keys(CAT_UI).map(c => `<div class="panel"><h3>${esc(CAT_UI[c])}</h3><div class="scroll-x"><table class="t linegrid"><thead><tr><th>Fire</th><th>Acceptable lines</th><th>Preferred</th><th>Alarm expected</th></tr></thead><tbody>` +
+      Object.keys(INV_UI).map(i => { const l = Rr.lines[c][i]; return `<tr><td>${esc(INV_UI[i])}</td>
+        <td><div class="chips" data-lc="${c}" data-li="${i}">${Object.keys(LINE_UI).map(x => `<button type="button" data-v="${esc(x)}" aria-pressed="${l.accept.indexOf(x) >= 0}">${esc(LINE_UI[x])}</button>`).join('')}</div></td>
+        <td><select data-pref="${c}|${i}" aria-label="${esc(CAT_UI[c] + ', ' + INV_UI[i] + ': preferred line')}">${prefOptions(l)}</select></td>
+        <td><select data-alarm="${c}|${i}" aria-label="${esc(CAT_UI[c] + ', ' + INV_UI[i] + ': alarm')}">${[1, 2, 3, 4].map(n => `<option value="${n}"${Rr.alarms[c][i] === n ? ' selected' : ''}>${ALARM_UI(n)}</option>`).join('')}</select></td></tr>`; }).join('') + '</tbody></table></div></div>').join('');
+    rulesDirty();
+  }
+  const prefOptions = l => l.accept.map(x => `<option value="${esc(x)}"${x === l.preferred ? ' selected' : ''}>${esc(LINE_UI[x])}</option>`).join('');
+  function drawPrio() {
+    const T = RU.data.tactics;
+    $$('.prio').forEach(ol => {
+      const k = ol.dataset.prio, list = T.priority[k], rest = Object.keys(NEED_UI).filter(x => list.indexOf(x) < 0);
+      ol.innerHTML = list.map((n, i) => `<li><span>${esc(NEED_UI[n])}</span><span class="mv">
+          <button type="button" data-mv="up" data-k="${k}" data-i="${i}"${i === 0 ? ' disabled' : ''} aria-label="Move ${esc(NEED_UI[n])} up">↑</button>
+          <button type="button" data-mv="down" data-k="${k}" data-i="${i}"${i === list.length - 1 ? ' disabled' : ''} aria-label="Move ${esc(NEED_UI[n])} down">↓</button>
+          <button type="button" data-mv="del" data-k="${k}" data-i="${i}" aria-label="Remove ${esc(NEED_UI[n])}">✕</button></span></li>`).join('') +
+        (rest.length ? `<li class="add"><select data-add="${k}" aria-label="Add an objective"><option value="">Add an objective…</option>${rest.map(x => `<option value="${x}">${esc(NEED_UI[x])}</option>`).join('')}</select></li>` : '');
+    });
+  }
+  function wireRules() {
+    $('#agTabs').addEventListener('click', e => { const b = e.target.closest('[data-agtab]'); if (b) agTab(b.dataset.agtab); });
+    const both = [$('#tacticsBody'), $('#rulesBody')];
+    both.forEach(body => body.addEventListener('click', e => {
+      if (!RU.data) return;
+      const T = RU.data.tactics, Rr = RU.data.rules;
+      const chip = e.target.closest('.chips button[data-v]');
+      if (chip) {
+        const box = chip.parentElement, v = chip.dataset.v;
+        let arr = box.dataset.tk ? getPath(T, box.dataset.tk) : Rr.lines[box.dataset.lc][box.dataset.li].accept;
+        const on = arr.indexOf(v) >= 0;
+        if (on && box.dataset.lc && arr.length === 1) { toast('Keep at least one acceptable line.'); return; }
+        if (on) arr.splice(arr.indexOf(v), 1); else arr.push(v);
+        chip.setAttribute('aria-pressed', String(!on));
+        if (box.dataset.lc) {
+          const l = Rr.lines[box.dataset.lc][box.dataset.li];
+          if (l.accept.indexOf(l.preferred) < 0) l.preferred = l.accept[0];
+          $(`[data-pref="${box.dataset.lc}|${box.dataset.li}"]`).innerHTML = prefOptions(l);
+        }
+        rulesDirty(); return;
+      }
+      const mv = e.target.closest('[data-mv]');
+      if (mv) {
+        const list = T.priority[mv.dataset.k], i = +mv.dataset.i;
+        if (mv.dataset.mv === 'del') { if (list.length === 1) { toast('Keep at least one objective.'); return; } list.splice(i, 1); }
+        else { const j = mv.dataset.mv === 'up' ? i - 1 : i + 1; [list[i], list[j]] = [list[j], list[i]]; }
+        drawPrio(); rulesDirty();
+        const again = $(`[data-mv="${mv.dataset.mv}"][data-k="${mv.dataset.k}"][data-i="${mv.dataset.mv === 'up' ? i - 1 : mv.dataset.mv === 'down' ? i + 1 : Math.max(0, i - 1)}"]`); if (again && !again.disabled) again.focus();
+      }
+    }));
+    both.forEach(body => body.addEventListener('change', e => {
+      if (!RU.data) return;
+      const t = e.target, T = RU.data.tactics, Rr = RU.data.rules;
+      if (t.dataset.add) { if (t.value) T.priority[t.dataset.add].push(t.value); drawPrio(); }
+      else if (t.dataset.fit) { const a = T.fit[t.dataset.fit] = T.fit[t.dataset.fit] || []; if (t.checked) a.push(t.dataset.t); else a.splice(a.indexOf(t.dataset.t), 1); }
+      else if (t.dataset.floor) { const a = T.floors[t.dataset.floor] = T.floors[t.dataset.floor] || []; if (t.checked) a.push(t.dataset.f); else a.splice(a.indexOf(t.dataset.f), 1); }
+      else if (t.dataset.arr) T.arrival[t.dataset.arr] = t.value;
+      else if (t.dataset.pt) T.points[t.dataset.pt] = +t.value;
+      else if (t.dataset.pref) { const [c, i] = t.dataset.pref.split('|'); Rr.lines[c][i].preferred = t.value; }
+      else if (t.dataset.alarm) { const [c, i] = t.dataset.alarm.split('|'); Rr.alarms[c][i] = +t.value; }
+      rulesDirty();
+    }));
+    [['szSmall', 'small'], ['szMedium', 'medium'], ['szLarge', 'large']].forEach(([id, k]) => $('#' + id).addEventListener('input', e => { if (RU.data) { RU.data.rules.sizes[k] = Math.round(+e.target.value) || 0; rulesDirty(); } }));
+    $('#saveRules').onclick = async () => {
+      const err = $('#rulesErr'); err.hidden = true;
+      const btn = $('#saveRules'); btn.disabled = true; $('#rulesHint').textContent = 'Saving…';
+      try { const d = await Server.call('saveRules', { tactics: RU.data.tactics, rules: RU.data.rules }); RU.data = d; RU.orig = JSON.stringify(d); drawRules(); toast('Tactics and rules saved. They apply to the next call.'); }
+      catch (e) { if (e.code === 'auth') return expired(); err.hidden = false; err.textContent = e.message; rulesDirty(); }
+      finally { btn.disabled = false; }
+    };
+    $('#undoRules').onclick = () => { if (!RU.orig) return; RU.data = JSON.parse(RU.orig); $('#rulesErr').hidden = true; drawRules(); toast('Changes undone.'); };
+    $('#resetRules').onclick = async () => {
+      const b = $('#resetRules');
+      if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to use the defaults'; setTimeout(() => { b.dataset.armed = ''; b.textContent = 'Go back to the default'; }, 4000); return; }
+      b.dataset.armed = ''; b.textContent = 'Go back to the default';
+      try { const d = await Server.call('saveRules', { reset: true }); RU.data = d; RU.orig = JSON.stringify(d); drawRules(); toast('Your agency now uses the default tactics and rules.'); }
+      catch (e) { if (e.code === 'auth') return expired(); toast("Couldn't reset. " + e.message); }
+    };
+  }
+
   /* ---------- wiring ---------- */
   function wire() {
     $('#loginMode').textContent = Api.url() ? "We'll email you a 6-digit code to sign in." : window.LocalServer ? 'Demo mode: built-in buildings and rules on this device.' : '';
@@ -2198,6 +2378,7 @@ const FX = (() => {
     $('#cancelEdit').onclick = () => { resetForm(); renderAdmin(); toast('Editing canceled. Nothing was changed.'); };
     taggerPointer();
     wireUnits();
+    wireRules();
   }
 
   function loginStage(stage, email) {
