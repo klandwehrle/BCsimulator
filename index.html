@@ -112,7 +112,8 @@ table.edit tr.off td { opacity: .5; } table.edit tr.off td:first-child, table.ed
   #apTable thead, #stTable thead { display: none; }
   #apTable, #apTable tbody, #stTable, #stTable tbody { display: block; }
   #apTable tr, #stTable tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
-  #stTable tr { grid-template-columns: 1fr; }
+  #stTable tr { grid-template-columns: 1fr 1fr; }
+  #stTable td:nth-child(1), #stTable td:nth-child(2), #stTable td:nth-child(3), #stTable td:nth-child(6) { grid-column: 1 / -1; }
   #apTable td, #stTable td { display: block; border: 0; padding: 0; }
   #apTable td[data-label]::before, #stTable td[data-label]::before { content: attr(data-label); display: block; font-family: var(--f-mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
   #apTable td input, #apTable td select, #stTable td input { width: 100%; min-width: 0; }
@@ -175,6 +176,21 @@ textarea.report { font-family: var(--f-mono); font-size: .98rem; line-height: 1.
 .units .u.here .eta { color: var(--ok); }
 .units .u.late .eta { color: var(--warn); }
 .units .u.new { border-style: dashed; }
+.units .u.tap { cursor: pointer; } .units .u.tap:hover { border-color: var(--accent); }
+.units .u .task { grid-column: 1 / -1; font-family: var(--f-mono); font-size: .78rem; color: var(--ink); }
+.units .u.assigned { background: var(--ok-soft); border-color: var(--ok); }
+.units .u.waiting .eta { color: var(--muted); }
+.radio { display: grid; gap: 6px; max-height: 340px; overflow-y: auto; }
+.radio .m { padding: 8px 10px; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); font-size: .95rem; }
+.radio .m b { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .04em; font-size: .9rem; margin-right: 6px; }
+.radio .m.me { background: var(--accent-soft); border-color: var(--accent); }
+.radio .m.note { background: var(--warn-soft); border-color: var(--warn); }
+.radio .m.disp { border-left: 5px solid var(--bar-bg); }
+.cmdscore { font-family: var(--f-display); font-weight: 700; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+.needs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.needs li { font-family: var(--f-mono); font-size: .76rem; padding: 4px 9px; border-radius: 99px; border: 1px solid var(--line); background: var(--paper); }
+.needs li.ok { background: var(--ok-soft); border-color: var(--ok); }
+.needs li.miss { background: var(--signal-soft); border-color: var(--signal); }
 .scene .countdown { position: absolute; right: 10px; bottom: 10px; background: rgba(5,9,14,.78); color: #e2ab43; font-family: var(--f-mono); font-size: 1.1rem; padding: 6px 12px; border-radius: 6px; font-variant-numeric: tabular-nums; }
 
 /* 360 walk */
@@ -369,6 +385,34 @@ img { max-width: 100%; }
   </div>
 </section>
 
+<!-- COMMAND -->
+<section data-screen="command" hidden>
+  <div class="split">
+    <div style="display:grid;gap:12px;min-width:0">
+      <div class="scene" id="sceneCmd"><img alt="Side Alpha of the building"><canvas></canvas><span class="badge" id="cmdBadge">Command</span><span class="clock" id="clock3">0:00</span></div>
+      <div class="panel"><div class="row" style="justify-content:space-between"><h3>Radio</h3><span class="muted" style="font-size:.85rem" id="radioHint">Newest at the top</span></div><div class="radio" id="radioLog" aria-live="polite"></div></div>
+    </div>
+    <div style="display:grid;gap:20px;min-width:0;align-content:start">
+      <div class="panel">
+        <h3>Give an assignment</h3>
+        <p class="muted" style="font-size:.92rem" id="assignHint"></p>
+        <div class="ptt-row">
+          <button class="ptt" type="button" id="ptt4Btn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <div class="ptt-status"><strong id="ptt4State">Tap to key up</strong><span class="muted" style="font-size:.88rem">Tap a unit below to start the call.</span></div>
+        </div>
+        <textarea class="report" id="assignText" rows="3" placeholder="Engine 2 from Maple Command, forward lay to Engine 1 for water supply."></textarea>
+        <p class="note warn" id="assignNote" hidden></p>
+        <button class="btn big" type="button" id="sendAssign">Send</button>
+      </div>
+      <div class="panel">
+        <div class="row" style="justify-content:space-between"><h3>Units</h3><button class="btn quiet small" type="button" id="skipAhead">Skip to next arrival</button></div>
+        <div class="units" id="unitsCmd"></div>
+      </div>
+      <button class="btn big ghost" type="button" id="endIncident">End incident and debrief</button>
+    </div>
+  </div>
+</section>
+
 <!-- DEBRIEF -->
 <section data-screen="debrief" hidden>
   <div class="panel" id="grading"><h3>Grading your run…</h3><p class="muted">Checking your report against your agency's rules.</p></div>
@@ -376,13 +420,16 @@ img { max-width: 100%; }
   <div id="debriefBody" style="display:grid;gap:20px" hidden>
   <div class="panel score">
     <div class="num" id="scoreNum">0<small>/100</small></div>
-    <div style="display:grid;gap:6px;min-width:0"><div class="eyebrow" id="scoreBldg"></div><h2 id="scoreHead"></h2><p class="muted" id="scoreSub"></p></div>
+    <div style="display:grid;gap:6px;min-width:0"><div class="eyebrow" id="scoreBldg"></div><h2 id="scoreHead"></h2><p class="muted" id="scoreSub"></p><p id="scoreCmd" hidden></p></div>
   </div>
   <div class="split">
     <div style="display:grid;gap:20px;min-width:0">
       <div class="panel"><h3>What to fix</h3><ul class="items" id="fixList"></ul></div>
       <div class="panel"><h3>What the app heard</h3><div class="heard" id="heard"></div>
         <p class="muted" style="font-size:.88rem">Blue marks are recognized size-up parts, numbered in size-up order. Red marks are terms that aren't approved.</p></div>
+      <div class="panel" id="cmdPanel" hidden><div class="row" style="justify-content:space-between"><h3>Command</h3><span class="cmdscore" id="cmdScore"></span></div>
+        <p class="muted" style="font-size:.92rem">Did the right units go to the next tactical objective, with a clear task, location, and objective?</p>
+        <ul class="needs" id="cmdNeeds"></ul><ul class="items" id="cmdList"></ul></div>
       <div class="panel" id="r360Panel" hidden><h3>360 update</h3><ul class="items" id="r360List"></ul><div class="heard" id="heard360"></div></div>
       <div class="panel"><details><summary>What you got right (<span id="passCount">0</span>)</summary><ul class="items" id="passList" style="margin-top:12px"></ul></details></div>
     </div>
@@ -408,7 +455,10 @@ img { max-width: 100%; }
     <h3>1. Building facts</h3>
     <div class="grid2">
       <label class="f">Name <input type="text" id="bName" placeholder="Station 4 first-due: 77 Elm St"></label>
-      <label class="f">Address <input type="text" id="bAddr" placeholder="77 Elm St"></label>
+      <label class="f">Street address <input type="text" id="bAddr" placeholder="77 Elm St SE" autocomplete="address-line1"></label>
+      <label class="f">City <input type="text" id="bCity" placeholder="Lacey" autocomplete="address-level2"></label>
+      <div class="row" style="flex-wrap:nowrap;gap:10px;align-items:start"><label class="f" style="flex:0 0 90px">State <input type="text" id="bState" placeholder="WA" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase"></label>
+      <label class="f" style="flex:1">ZIP <input type="text" id="bZip" placeholder="98503" maxlength="10" inputmode="numeric" autocomplete="postal-code"></label></div>
       <label class="f">Command name <input type="text" id="bCmd" placeholder="Elm"><span class="hint">Usually the street name.</span></label>
       <label class="f">Square feet <input type="number" id="bSqft" min="100" step="50" placeholder="2600"></label>
       <label class="f">Stories <select id="bStories"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select></label>
@@ -461,7 +511,7 @@ img { max-width: 100%; }
   </div>
   <div class="panel">
     <h3>Stations</h3>
-    <div class="scroll-x"><table class="t edit" id="stTable"><thead><tr><th>Station</th><th>Address</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="scroll-x"><table class="t edit" id="stTable"><thead><tr><th>Station</th><th>Street address</th><th>City</th><th>State</th><th>ZIP</th><th></th></tr></thead><tbody></tbody></table></div>
     <div><button class="btn quiet small" type="button" id="addStation">Add station</button></div>
   </div>
   <div class="panel">
@@ -489,6 +539,7 @@ img { max-width: 100%; }
     <div class="grid2">
       <label class="f">Your unit <select id="sUnit"></select><span class="hint">Your agency's apparatus list. You're always first due.</span></label>
       <label class="f">Unit delays <select id="sDelays"><option value="off">Everyone responds on time</option><option value="on">Sometimes a unit is delayed</option></select></label>
+      <label class="f">Unit readbacks <select id="sUnitErr"><option value="on">Units sometimes repeat it back wrong</option><option value="off">Units always repeat it back right</option></select></label>
       <label class="f">Dispatch readback <select id="sDispErr"><option value="on">Dispatch sometimes gets it wrong</option><option value="off">Dispatch always gets it right</option></select></label>
       <label class="f">Practice aids <select id="sAids"><option value="on">Show the report order while I talk</option><option value="off">Hide it (test mode)</option></select></label>
       <label class="f">Dispatch voice <select id="sVoice"><option value="on">Read dispatch aloud</option><option value="off">Text only</option></select></label>
@@ -1156,7 +1207,7 @@ const FX = (() => {
   const scene = id => scenes[id] || (scenes[id] = new FX.Scene($('#' + id)));
   const defaultUnit = () => { const e = (S.apparatus || []).find(a => a.type === 'engine'); return e ? e.name : 'Engine 1'; };
   const settings = () => ({ unit: store.get('unit', '') || defaultUnit(), aids: store.get('aids', 'on'), voice: store.get('voice', 'on'),
-    delays: store.get('delays', 'off'), dispErr: store.get('dispErr', 'on') });
+    delays: store.get('delays', 'off'), dispErr: store.get('dispErr', 'on'), unitErr: store.get('unitErr', 'on') });
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2600); }
 
@@ -1229,8 +1280,9 @@ const FX = (() => {
   function go(name) {
     $$('section[data-screen]').forEach(s => s.hidden = s.dataset.screen !== name);
     $('#bar').hidden = name === 'login';
-    $$('.bar nav button').forEach(b => b.setAttribute('aria-current', b.dataset.nav === name || (b.dataset.nav === 'home' && ['dispatch', 'approach', 'scene', 'walk', 'debrief'].includes(name)) ? 'page' : 'false'));
+    $$('.bar nav button').forEach(b => b.setAttribute('aria-current', b.dataset.nav === name || (b.dataset.nav === 'home' && ['dispatch', 'approach', 'scene', 'walk', 'command', 'debrief'].includes(name)) ? 'page' : 'false'));
     if (name !== 'scene') Speech.stop();
+    if (name !== 'command' && name !== 'debrief') { try { speechSynthesis.cancel(); } catch { } }
     if (name !== 'approach') clearInterval(respond.h);
     for (const k in scenes) if (!$('#' + k).closest('section').hidden) scenes[k].play(); else scenes[k].pause();
     window.scrollTo(0, 0);
@@ -1283,7 +1335,8 @@ const FX = (() => {
     };
   })();
   async function start(b, test) {
-    S.b = b; S.sc = null; S.out = null; S.seen = new Set(['A']); S.did360 = false; S.units = []; S.t0 = 0; S.readback = '';
+    S.b = b; S.sc = null; S.out = null; S.seen = new Set(['A']); S.did360 = false; S.units = []; S.t0 = 0; S.readback = ''; S.skip = 0; S.radio = []; S.announced = new Set(); S.cmd = false; S.report360 = '';
+    $('#assignText').value = '';
     Tones.prime();
     $('#dispText').textContent = 'Dispatching…';
     $('#respondBtn').disabled = true; $('#replayBtn').disabled = true;
@@ -1294,7 +1347,7 @@ const FX = (() => {
     go('dispatch');
     try {
       const st = settings();
-      S.sc = await Server.call('startScenario', { buildingId: b.id, unit: st.unit, delays: st.delays === 'on', dispatchErrors: st.dispErr === 'on', test });
+      S.sc = await Server.call('startScenario', { buildingId: b.id, unit: st.unit, delays: st.delays === 'on', dispatchErrors: st.dispErr === 'on', unitErrors: st.unitErr === 'on', test });
       S.units = S.sc.units || [];
       $('#dispText').textContent = S.sc.dispatch;
       renderUnits($('#unitsTone'), false);
@@ -1350,7 +1403,8 @@ const FX = (() => {
   }
   function tick() {
     clearInterval(tick.h);
-    tick.h = setInterval(() => { const s = Math.floor((Date.now() - S.t0) / 1000); const t = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; $('#clock').textContent = t; $('#clock2').textContent = t; if (s !== tick.last) { tick.last = s; renderUnits($('#unitsScene'), true); } }, 500);
+    tick.h = setInterval(() => { const s = Math.floor((Date.now() - S.t0) / 1000); const t = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; $('#clock').textContent = t; $('#clock2').textContent = t; if (s !== tick.last) { tick.last = s; renderUnits($('#unitsScene'), true); }
+      if (!$('section[data-screen=command]').hidden) cmdTick(); }, 500);
   }
   function buildOrderStrip() {
     const on = settings().aids === 'on';
@@ -1436,16 +1490,88 @@ const FX = (() => {
       <text x="${W / 2}" y="${H + 8}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">street side = Alpha</text></svg>`;
   }
 
+
+  /* ---------- command board: units arrive, command gives assignments ---------- */
+  const STATUS_TEXT = { level1: 'Level one', onscene: 'On scene', staging: 'Level two staging', assigned: 'Assigned', command: 'Command' };
+  const STATUS_RADIO = { level1: 'level one, one block out', onscene: 'on scene', staging: 'in level two staging' };
+  const elapsed = () => S.t0 ? (Date.now() - S.t0) / 1000 + (S.skip || 0) : 0;
+  function speakQ(text) { if (settings().voice !== 'on') return; try { const u = new SpeechSynthesisUtterance(text); u.rate = 1.05; speechSynthesis.speak(u); } catch { } }
+  function radio(from, text, kind) {
+    S.radio.unshift({ from, text, kind });
+    $('#radioLog').innerHTML = S.radio.map(m => `<div class="m ${m.kind || ''}">${m.from ? `<b>${esc(m.from)}</b>` : ''}${esc(m.text)}</div>`).join('');
+  }
+  function toCommand() {
+    Speech.stop();
+    S.report360 = S.did360 ? $('#report360').value.trim() : '';
+    S.cmd = true;
+    go('command');
+    const cmd = S.b.command + ' Command';
+    $('#cmdBadge').textContent = cmd + ' · side Alpha';
+    const mine = (S.units.find(u => u.mine) || {}).name || 'Engine 1';
+    const ex = S.units.find(u => !u.mine && u.type !== 'engine' && u.type !== 'battalion') || S.units.find(u => !u.mine) || { name: 'Engine 2' };
+    $('#assignHint').textContent = `Call the unit, then give the task, location, and objective: "${ex.name} from ${cmd}, stretch a 1¾ from ${mine} to side Alpha, floor 1, for primary search." Level-one engines can take a forward, reverse, split, or driveway lay, water forward, or relay pump.`;
+    $('#assignNote').hidden = true;
+    if (!S.radio.length) radio(S.dispatchName, `${cmd}, ${S.dispatchName} copies. Units are arriving.`, 'disp');
+    showScene('sceneCmd', 'A');
+    cmdTick();
+  }
+  function cmdTick() {
+    const t = Math.floor(elapsed());
+    $('#clock3').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+    const cmd = S.b.command + ' Command';
+    S.units.filter(u => !u.mine && !S.announced.has(u.name) && u.eta * 60 <= elapsed()).sort((a, b) => a.eta - b.eta).forEach(u => {
+      S.announced.add(u.name);
+      const txt = `${cmd} from ${u.name}, ${STATUS_RADIO[u.status] || 'on scene'}.`;
+      radio(u.name, txt, 'unit'); speakQ(txt);
+    });
+    if (t !== cmdTick.last) { cmdTick.last = t; renderCmdUnits(); }
+  }
+  function renderCmdUnits() {
+    const sec = elapsed();
+    $('#unitsCmd').innerHTML = S.units.slice().sort((x, y) => (y.mine ? 1 : 0) - (x.mine ? 1 : 0) || x.eta - y.eta).map(u => {
+      const here = u.mine || u.eta * 60 <= sec;
+      const cls = ['u']; let eta;
+      if (u.mine) { cls.push('mine'); eta = 'Command'; }
+      else if (!here) { cls.push('waiting'); eta = Math.ceil((u.eta * 60 - sec) / 60) + ' min'; }
+      else { cls.push('tap'); if (u.task) cls.push('assigned'); eta = u.task ? 'Assigned' : STATUS_TEXT[u.status] || 'On scene'; }
+      const meta = [TYPE_LABEL[u.type] || u.type, u.staff ? u.staff + ' staffed' : ''].filter(Boolean).join(' · ');
+      return `<div class="${cls.join(' ')}"${here && !u.mine ? ` data-unit="${esc(u.name)}" role="button" tabindex="0"` : ''}><span><strong>${esc(u.name)}</strong> <span class="st">${esc(meta)}</span></span><span class="eta">${esc(eta)}</span>${u.task ? `<span class="task">${esc(u.task)}</span>` : ''}</div>`;
+    }).join('');
+  }
+  function skipAhead() {
+    const sec = elapsed();
+    const next = S.units.filter(u => !u.mine && u.eta * 60 > sec).sort((a, b) => a.eta - b.eta)[0];
+    if (!next) { toast('Every unit is on scene.'); return; }
+    S.skip += next.eta * 60 - sec + 0.5;
+    cmdTick(); renderCmdUnits();
+  }
+  async function sendAssign() {
+    const text = $('#assignText').value.trim();
+    if (!text) { toast('Say or type the assignment first.'); return; }
+    Speech.stop();
+    const btn = $('#sendAssign'); btn.disabled = true; btn.textContent = 'Sending…';
+    $('#assignNote').hidden = true;
+    try {
+      const r = await Server.call('assign', { scenarioId: S.sc.scenarioId, text, minute: Math.floor(elapsed() / 60) });
+      if (r.note) { $('#assignNote').hidden = false; $('#assignNote').textContent = r.note; return; }
+      radio(S.b.command + ' Command', text, 'me');
+      if (r.reply) { radio(r.from, r.reply, 'unit'); speakQ(r.reply); }
+      if (r.units) S.units = r.units;
+      $('#assignText').value = ''; renderCmdUnits();
+    } catch (e) { if (e.code === 'auth') return expired(); toast("The unit didn't hear you. " + e.message); }
+    finally { btn.disabled = false; btn.textContent = 'Send'; }
+  }
+
   /* ---------- debrief ---------- */
-  const AREA = { order: 'Order', terms: 'Approved terms', missing: 'Missing part', decision: 'Tactical call', dispatch: 'Dispatch readback' };
+  const AREA = { order: 'Order', terms: 'Approved terms', missing: 'Missing part', decision: 'Tactical call', dispatch: 'Dispatch readback', command: 'Assignment' };
   const ICON = { fail: '!', warn: '?', pass: '✓', info: 'i' };
   async function finish() {
     Speech.stop();
     go('debrief');
     $('#debriefBody').hidden = true; $('#grading').hidden = false; $('#gradeErrRow').hidden = true;
     try {
-      S.out = await Server.call('grade', { scenarioId: S.sc.scenarioId, report: S.reportText, report360: S.did360 ? $('#report360').value.trim() : '',
-        did360: S.did360, sides: [...S.seen].join(''), seconds: S.tReport });
+      S.out = await Server.call('grade', { scenarioId: S.sc.scenarioId, report: S.reportText, report360: S.report360 || (S.did360 ? $('#report360').value.trim() : ''),
+        did360: S.did360, sides: [...S.seen].join(''), seconds: S.tReport, command: !!S.cmd });
     } catch (e) {
       if (e.code === 'auth') return expired();
       $('#grading').hidden = true; $('#gradeErrRow').hidden = false; $('#gradeErr').textContent = "Couldn't grade this run. " + e.message; return;
@@ -1478,6 +1604,14 @@ const FX = (() => {
       $('#r360List').innerHTML = r.items360.map(li).join('');
       $('#heard360').innerHTML = r.tokens360 && r.tokens360.length ? heardHtml(r.tokens360, r.matches360) : '<span class="muted">You didn\'t give a 360 update.</span>';
     }
+    const c = r.command;
+    $('#cmdPanel').hidden = !c; $('#scoreCmd').hidden = !c;
+    if (c) {
+      $('#cmdScore').textContent = c.score + '/100';
+      $('#scoreCmd').innerHTML = `<strong>Command score: ${c.score}/100</strong> · ${c.needs.filter(n => n.by).length} of ${c.needs.length} tactical objectives covered.`;
+      $('#cmdNeeds').innerHTML = c.needs.map(n => `<li class="${n.by ? 'ok' : 'miss'}">${esc(n.label)}${n.by ? ' · ' + esc(n.by) : ''}</li>`).join('');
+      $('#cmdList').innerHTML = c.items.length ? c.items.map(li).join('') : '<li class="info"><span class="ic">i</span><span>No assignments were given.</span></li>';
+    }
     $('#facts').innerHTML = r.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
     $('#debriefBadge').textContent = `Seat of fire · side ${SIDE_NAME[r.seatSide]}`;
     setTimeout(() => showScene('sceneDebrief', r.seatSide), 30);
@@ -1497,7 +1631,7 @@ const FX = (() => {
     return out.join(' ');
   }
   function saveHistory(r) {
-    const rec = { ts: Date.now(), email: S.session.email, building: S.b.name, inv: r.invLabel, score: r.score };
+    const rec = { ts: Date.now(), email: S.session.email, building: S.b.name, inv: r.invLabel, score: r.score + (r.command ? ' · cmd ' + r.command.score : '') };
     const h = store.get('history', []); h.unshift(rec); store.set('history', h.slice(0, 60));
   }
 
@@ -1543,7 +1677,7 @@ const FX = (() => {
     const names = S.apparatus.map(a => a.name);
     if (names.indexOf(st.unit) < 0) names.unshift(st.unit);
     $('#sUnit').innerHTML = names.map(n => { const a = S.apparatus.find(x => x.name === n); return `<option value="${esc(n)}">${esc(n)}${a ? ' · ' + esc(TYPE_LABEL[a.type] || a.type) : ''}</option>`; }).join('');
-    $('#sUnit').value = st.unit; $('#sAids').value = st.aids; $('#sVoice').value = st.voice; $('#sDelays').value = st.delays; $('#sDispErr').value = st.dispErr;
+    $('#sUnit').value = st.unit; $('#sAids').value = st.aids; $('#sVoice').value = st.voice; $('#sDelays').value = st.delays; $('#sDispErr').value = st.dispErr; $('#sUnitErr').value = st.unitErr;
     $('#connMode').textContent = S.session.mode === 'sheets' ? `${S.session.dept.name}. You're signed in as ${S.session.email} (${S.session.role === 'admin' ? 'admin' : 'member'}). You see only your agency's buildings and the shared samples.` : 'Demo mode. Buildings you add stay on this device. Your training officer sets up the shared Google Sheet in config.js.';
     $('#rulesOrder tbody').innerHTML = S.order.map((o, i) => `<tr><td>${i + 1}</td><td>${esc(o.label)}</td><td>${o.required === 'yes' ? 'Required' : o.required === 'warn' ? 'Recommended' : 'Optional'}</td><td>${esc(o.hint)}</td></tr>`).join('');
   }
@@ -1626,8 +1760,9 @@ const FX = (() => {
     else $('#addrResult').textContent = '';
   }
   async function checkAddress() {
-    const addr = $('#bAddr').value.trim();
-    if (!addr) { toast('Enter the address first.'); return; }
+    const st = $('#bAddr').value.trim(), city = $('#bCity').value.trim(), state = $('#bState').value.trim().toUpperCase(), zip = $('#bZip').value.trim();
+    if (!st || !city || !state || !zip) { toast('Enter the street, city, state, and ZIP first.'); return; }
+    const addr = `${st}, ${city}, ${state} ${zip}`;
     $('#checkAddr').disabled = true;
     try { A.addr = Local() ? { demo: true } : await Api.call('geocode', { address: addr }); }
     catch (e) { toast("Couldn't check the address. " + e.message); }
@@ -1729,7 +1864,10 @@ const FX = (() => {
     const v = id => $('#' + id).value.trim();
     const errs = [];
     if (!v('bName')) errs.push('Give the building a name.');
-    if (!v('bAddr')) errs.push('Add the address.');
+    if (!v('bAddr')) errs.push('Add the street address.');
+    if (!v('bCity')) errs.push('Add the city.');
+    if (!/^[A-Za-z]{2}$/.test(v('bState'))) errs.push('Enter the state as two letters, for example WA.');
+    if (!/^\d{5}(-\d{4})?$/.test(v('bZip'))) errs.push('Enter a 5-digit ZIP code.');
     const sqft = +v('bSqft'); if (!sqft) errs.push('Enter the square footage.');
     for (const s of SIDES) {
       if (!A.photos[s]) errs.push(`Add a photo of side ${SIDE_NAME[s]}.`);
@@ -1758,7 +1896,7 @@ const FX = (() => {
     const c = sideCenter(), at = A.addr && A.addr.found ? A.addr : c || (A.prev && A.prev.lat != null ? { lat: A.prev.lat, lng: A.prev.lng } : null);
     const check = locIssues().map(r => tabName(r.s) + ': ' + r.src + (r.check ? ', ' + r.check : '')).join('; ') + (A.addr && A.addr.found && c ? '; address ' + distTxt(meters(c, A.addr)) + ' from photos' : '');
     const location = { lat: at ? +at.lat.toFixed(6) : null, lng: at ? +at.lng.toFixed(6) : null, check, confirmed: true };
-    return { location, approach: { src: A.photos.E, x: +A.point.x.toFixed(4), y: +A.point.y.toFixed(4) }, b: { id, dept: A.prev ? A.prev.dept : S.session.dept.id, name: v('bName'), address: addr, command: v('bCmd') || street.charAt(0).toUpperCase() + street.slice(1), sqft, stories, category: cat,
+    return { location, approach: { src: A.photos.E, x: +A.point.x.toFixed(4), y: +A.point.y.toFixed(4) }, b: { id, dept: A.prev ? A.prev.dept : S.session.dept.id, name: v('bName'), address: addr, city: v('bCity'), state: v('bState').toUpperCase(), zip: v('bZip'), command: v('bCmd') || street.charAt(0).toUpperCase() + street.slice(1), sqft, stories, category: cat,
       typeCategories: [cat].concat(cat === 'multifamily' ? ['residential'] : []), typeLabel: catName(cat), construction: v('bCons'), planW: W, planD: D, hazards, sides } };
   }
   async function saveBuilding() {
@@ -1797,7 +1935,7 @@ const FX = (() => {
   function resetForm() {
     A.photos = {}; A.boxes = { A: [], B: [], C: [], D: [] }; A.side = 'A'; A.sel = -1; A.point = null; A.gps = {}; A.addr = null; A.editId = null; A.keep = {}; A.prev = null;
     $('#locConfirm').checked = false; $('#adminErr').hidden = true;
-    ['bName', 'bAddr', 'bCmd', 'bSqft', 'bCons', 'bW', 'bD'].forEach(id => $('#' + id).value = '');
+    ['bName', 'bAddr', 'bCity', 'bState', 'bZip', 'bCmd', 'bSqft', 'bCons', 'bW', 'bD'].forEach(id => $('#' + id).value = '');
     $('#bStories').value = '2'; $('#bCat').value = 'residential';
     $$('[data-hz]').forEach(x => { x.checked = false; $(`[data-hzside="${x.dataset.hz}"]`).value = ''; $(`[data-hznote="${x.dataset.hz}"]`).value = ''; });
   }
@@ -1806,7 +1944,7 @@ const FX = (() => {
     const b = S.buildings.find(x => x.id === id); if (!b) return;
     resetForm();
     A.editId = b.id; A.prev = { dept: b.dept, lat: b.lat, lng: b.lng };
-    $('#bName').value = b.name || ''; $('#bAddr').value = b.address || ''; $('#bCmd').value = b.command || ''; $('#bSqft').value = b.sqft || '';
+    $('#bName').value = b.name || ''; $('#bAddr').value = b.address || ''; $('#bCity').value = b.city || ''; $('#bState').value = b.state || ''; $('#bZip').value = b.zip || ''; $('#bCmd').value = b.command || ''; $('#bSqft').value = b.sqft || '';
     $('#bStories').value = String(b.stories || 2); $('#bCat').value = b.category || 'residential'; $('#bCons').value = b.construction || '';
     $('#bW').value = b.planW || ''; $('#bD').value = b.planD || '';
     for (const h of b.hazards || []) { const x = $(`[data-hz="${h.type}"]`); if (!x) continue; x.checked = true; $(`[data-hzside="${h.type}"]`).value = h.side || ''; $(`[data-hznote="${h.type}"]`).value = h.note || ''; }
@@ -1866,8 +2004,11 @@ const FX = (() => {
     $('#uDispatch').value = d.dispatch || ''; $('#uDispatch').disabled = !!d.isDefaultSet;
     $('#stTable tbody').innerHTML = d.stations.map((st, i) => `<tr>
       <td data-label="Station"><input type="text" class="w-name" data-st="${i}" data-k="name" value="${esc(st.name)}" aria-label="Station name" placeholder="Station 31"></td>
-      <td data-label="Address"><input type="text" class="w-addr" data-st="${i}" data-k="address" value="${esc(st.address)}" aria-label="Station address" placeholder="1231 Franz St SE"></td>
-      <td><button class="btn quiet small" type="button" data-delst="${i}">Remove</button></td></tr>`).join('') || '<tr><td colspan="3" class="muted">No stations yet.</td></tr>';
+      <td data-label="Street address"><input type="text" class="w-addr" data-st="${i}" data-k="address" value="${esc(st.address)}" aria-label="Street address" placeholder="1231 Franz St SE"></td>
+      <td data-label="City"><input type="text" class="w-name" data-st="${i}" data-k="city" value="${esc(st.city || '')}" aria-label="City" placeholder="Lacey"></td>
+      <td data-label="State"><input type="text" style="width:60px;text-transform:uppercase" maxlength="2" data-st="${i}" data-k="state" value="${esc(st.state || '')}" aria-label="State" placeholder="WA"></td>
+      <td data-label="ZIP"><input type="text" style="width:92px" maxlength="10" inputmode="numeric" data-st="${i}" data-k="zip" value="${esc(st.zip || '')}" aria-label="ZIP" placeholder="98503"></td>
+      <td><button class="btn quiet small" type="button" data-delst="${i}">Remove</button></td></tr>`).join('') || '<tr><td colspan="6" class="muted">No stations yet.</td></tr>';
     drawApparatus();
     drawPlans();
     dirty();
@@ -1913,7 +2054,13 @@ const FX = (() => {
       if (!(a.staff >= 0 && a.staff <= 20)) errs.push(`${n || 'Unit ' + (i + 1)}: staffing must be 0 to 20.`);
     });
     const st = {};
-    d.stations.forEach((x, i) => { const n = String(x.name || '').trim(); if (!n) errs.push(`Station ${i + 1} needs a name.`); else if (st[n.toLowerCase()]) errs.push(`Station "${n}" is listed twice.`); st[n.toLowerCase()] = true; });
+    d.stations.forEach((x, i) => {
+      const n = String(x.name || '').trim(), label = n || `Station ${i + 1}`;
+      if (!n) errs.push(`Station ${i + 1} needs a name.`); else if (st[n.toLowerCase()]) errs.push(`Station "${n}" is listed twice.`); st[n.toLowerCase()] = true;
+      if (!String(x.address || '').trim() || !String(x.city || '').trim()) errs.push(`${label}: enter the street address and city.`);
+      if (!/^[A-Za-z]{2}$/.test(String(x.state || '').trim())) errs.push(`${label}: enter the state as two letters.`);
+      if (!/^\d{5}(-\d{4})?$/.test(String(x.zip || '').trim())) errs.push(`${label}: enter a 5-digit ZIP code.`);
+    });
     if (!d.apparatus.some(a => a.inService)) errs.push('Add at least one unit that is in service.');
     if (!UNIT_TYPES.some(t => +d.plans.initial[t] > 0)) errs.push('The initial assignment needs at least one unit.');
     return errs;
@@ -1955,7 +2102,7 @@ const FX = (() => {
       if (a) { d.apparatus.splice(+a.dataset.delap, 1); drawUnits(); }
       if (st) { d.stations.splice(+st.dataset.delst, 1); drawUnits(); }
     });
-    $('#addStation').onclick = () => { U.data.stations.push({ name: '', address: '' }); drawUnits(); const ins = $$('#stTable [data-k="name"]'); ins[ins.length - 1].focus(); };
+    $('#addStation').onclick = () => { U.data.stations.push({ name: '', address: '', city: '', state: '', zip: '' }); drawUnits(); const ins = $$('#stTable [data-k="name"]'); ins[ins.length - 1].focus(); };
     $('#addUnit').onclick = () => {
       const st = U.data.stations[0];
       U.data.apparatus.push({ name: '', type: 'engine', station: st ? st.name : '', staff: 3, minutes: 5, inService: true });
@@ -2002,15 +2149,20 @@ const FX = (() => {
     $('#sendCorr').onclick = sendCorrection;
     $('#ptt3Btn').onclick = () => Speech.toggle($('#ptt3Btn'), $('#ptt3State'), $('#corrText'), $('#corrNote'));
     $('#do360').onclick = () => { Speech.stop(); $('#ask360').hidden = true; S.did360 = true; go('walk'); walk('A'); };
-    $('#skip360').onclick = () => { Speech.stop(); $('#ask360').hidden = true; S.did360 = false; finish(); };
+    $('#skip360').onclick = () => { Speech.stop(); $('#ask360').hidden = true; S.did360 = false; toCommand(); };
     $('#sideBtns').addEventListener('click', e => { const b = e.target.closest('[data-side]'); if (b) walk(b.dataset.side); });
     $('#nextSideBtn').onclick = () => walk($('#nextSideBtn').dataset.to);
-    $('#finishWalkBtn').onclick = finish;
+    $('#finishWalkBtn').onclick = toCommand;
+    $('#sendAssign').onclick = sendAssign;
+    $('#endIncident').onclick = finish;
+    $('#skipAhead').onclick = skipAhead;
+    $('#ptt4Btn').onclick = () => Speech.toggle($('#ptt4Btn'), $('#ptt4State'), $('#assignText'), $('#assignNote'));
+    $('#unitsCmd').addEventListener('click', e => { const u = e.target.closest('[data-unit]'); if (!u) return; $('#assignText').value = u.dataset.unit + ' from ' + S.b.command + ' Command, '; $('#assignText').focus(); });
     $('#againBtn').onclick = () => start(S.buildings[Math.floor(Math.random() * S.buildings.length)]);
     $('#sameBtn').onclick = () => start(S.b);
     $('#speakModel').onclick = () => say($('#modelText').textContent + ' ' + $('#model360Text').textContent);
     $('#retryGrade').onclick = finish;
-    $('#saveSettings').onclick = () => { store.set('unit', $('#sUnit').value); store.set('aids', $('#sAids').value); store.set('voice', $('#sVoice').value); store.set('delays', $('#sDelays').value); store.set('dispErr', $('#sDispErr').value); toast('Saved.'); };
+    $('#saveSettings').onclick = () => { store.set('unit', $('#sUnit').value); store.set('aids', $('#sAids').value); store.set('voice', $('#sVoice').value); store.set('delays', $('#sDelays').value); store.set('dispErr', $('#sDispErr').value); store.set('unitErr', $('#sUnitErr').value); toast('Saved.'); };
     $('#signOut').onclick = () => { if (S.session && S.session.mode === 'sheets') Api.call('signOut').catch(() => { }); store.del('token'); store.del('session'); S.session = null; loginStage('email'); go('login'); };
     // admin
     $('#photoTabs').addEventListener('click', e => { const b = e.target.closest('[data-ptab]'); if (b) { A.side = b.dataset.ptab; A.sel = -1; renderTagger(); } });
@@ -2035,7 +2187,7 @@ const FX = (() => {
       } catch (err) { toast(err.message); }
     };
     $('#checkAddr').onclick = checkAddress;
-    $('#bAddr').addEventListener('change', () => { A.addr = null; renderLoc(); });
+    ['bAddr', 'bCity', 'bState', 'bZip'].forEach(id => $('#' + id).addEventListener('change', () => { A.addr = null; renderLoc(); }));
     $('#saveBldg').onclick = saveBuilding;
     $('#myBldgs').addEventListener('click', e => {
       const ed = e.target.closest('[data-editb]'); if (ed) { editBuilding(ed.dataset.editb); return; }
