@@ -131,6 +131,11 @@ table.edit tr.off td { opacity: .5; } table.edit tr.off td:first-child, table.ed
 .prio li.add { grid-template-columns: minmax(0, 1fr); background: none; border-style: dashed; }
 .prio li.add::before { content: none; }
 .fitgrid td.chk, .fitgrid th.c { text-align: center; } .fitgrid td.chk input { width: 20px; height: 20px; }
+.bands{display:grid;gap:8px;margin:10px 0}
+.bands .band{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line,#d5dbe3);border-radius:8px}
+.bands .band b{min-width:7.5em}
+.bands select{width:auto;min-width:7em}
+.bands .btn{min-height:34px;padding:4px 12px}
 .linegrid td { vertical-align: middle; } .linegrid select[data-alarm] { min-width: 160px; } .linegrid select[data-pref] { min-width: 130px; } .linegrid .chips button { min-height: 32px; padding: 2px 10px; font-size: .85rem; }
 table.edit tfoot td { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); padding: 6px 8px; }
 .scroll-x { overflow-x: auto; }
@@ -551,16 +556,17 @@ img { max-width: 100%; }
     <p class="muted">How the simulator judges your members' tactical calls. Pick from the choices; nothing here is typed.</p>
     <p class="note" id="rulesDefaultNote" hidden></p>
     <div class="panel"><h3>Strategy</h3>
-      <div class="fieldset"><span class="eyebrow">Defensive when the fire is</span><div class="chips" data-tk="defensive" data-opts="inv"></div><span class="hint">Every other fire is offensive.</span></div></div>
+      <div class="grid2"><label class="f">Defensive when the building is at or above<select data-tn="defensivePct"></select><span class="hint">Every smaller fire is offensive.</span></label>
+      <label class="f">Members should report "fully involved" at or above<select data-tn="fullPct"></select></label></div></div>
     <div class="panel"><h3>Size-up objectives</h3><p class="muted" style="font-size:.92rem">What the first-due unit's task, location, and objective must include.</p>
       <div class="fieldset"><span class="eyebrow">Offensive</span><div class="chips" data-tk="wsObj.offensive" data-opts="wsobj"></div></div>
       <div class="fieldset"><span class="eyebrow">Offensive with a victim showing</span><div class="chips" data-tk="wsObj.victim" data-opts="wsobj"></div></div>
       <div class="fieldset"><span class="eyebrow">Defensive</span><div class="chips" data-tk="wsObj.defensive" data-opts="wsobj"></div></div>
-      <div class="fieldset"><span class="eyebrow">Suggest check for extension when the fire is</span><div class="chips" data-tk="extInv" data-opts="inv"></div><span class="hint">Only below the top floor of a multi-story building. Pick none to turn it off.</span></div></div>
+      <div class="fieldset"><span class="eyebrow">Suggest check for extension</span><div class="grid2"><label class="f">From<select data-tn="extFrom"></select></label><label class="f">To<select data-tn="extTo"></select></label></div><span class="hint">Only on offensive fires below the top floor of a multi-story building.</span></div></div>
     <div class="panel"><h3>Command priorities</h3><p class="muted" style="font-size:.92rem">The order command should fill tactical objectives as units arrive. Objectives the size-up already covers are skipped, and rescue is skipped when no victim is showing.</p>
       <div class="grid2"><div class="fieldset"><span class="eyebrow">Offensive</span><ol class="prio" data-prio="offensive"></ol></div>
       <div class="fieldset"><span class="eyebrow">Defensive</span><ol class="prio" data-prio="defensive"></ol></div></div>
-      <div class="fieldset"><span class="eyebrow">Add a backup line or check for extension when the fire is</span><div class="chips" data-tk="backupInv" data-opts="inv"></div><span class="hint">Also added whenever check for extension is suggested.</span></div></div>
+      <label class="f">Add a backup line or check for extension at or above<select data-tn="backupPct"></select><span class="hint">Also added whenever check for extension is suggested.</span></label></div>
     <div class="panel"><h3>Which units fit each objective</h3><p class="muted" style="font-size:.92rem">A unit type that isn't picked gets a warning. Pick none for any type.</p>
       <div class="scroll-x"><table class="t fitgrid" id="fitTable"></table></div></div>
     <div class="panel"><h3>Assignment rules</h3>
@@ -579,6 +585,9 @@ img { max-width: 100%; }
       <label class="f">Small, up to (sq ft) <input type="number" id="szSmall" min="100" step="100"></label>
       <label class="f">Medium, up to (sq ft) <input type="number" id="szMedium" min="100" step="100"></label>
       <label class="f">Large, up to (sq ft) <input type="number" id="szLarge" min="100" step="100"><span class="hint">Anything bigger is mega.</span></label></div></div>
+    <div class="panel"><h3>Involvement bands</h3><p class="muted" style="font-size:.92rem">Every call has a specific involvement, from 0% (smoke only) to 100% of the building on fire. Split that range into bands, then set the lines and alarm for each band below.</p>
+      <div id="bandList" class="bands"></div>
+      <div class="row"><button class="btn quiet" type="button" id="addBand">Add a band</button><span class="hint">Up to 9 fire bands. Smoke only and the band ending at 100% always stay.</span></div></div>
     <div id="lineGrids" style="display:grid;gap:20px"></div>
   </div>
 
@@ -2175,14 +2184,35 @@ const FX = (() => {
 
 
   /* ---------- admin: tactics and size/line rules, picked from lists ---------- */
-  const INV_UI = { smoke: 'Smoke only', room: 'One room', floor: 'Part of the building', full: 'Fully involved' };
+  const bandName = (bands, i) => i === 0 ? 'Smoke only (0%)' : (bands[i - 1] + 1) + '–' + bands[i] + '%';
+  const PCT_SEL = {
+    defensivePct: { from: 1, to: 100 }, fullPct: { from: 1, to: 100 },
+    extFrom: { from: 1, to: 100, off: [0, 'Off'] }, extTo: { from: 1, to: 100 },
+    backupPct: { from: 1, to: 100, off: [101, 'Never (only with check for extension)'] } };
+  function pctOptions(k, cur) {
+    const c = PCT_SEL[k], out = [];
+    if (c.off) out.push(`<option value="${c.off[0]}"${cur === c.off[0] ? ' selected' : ''}>${c.off[1]}</option>`);
+    for (let n = c.from; n <= c.to; n++) out.push(`<option value="${n}"${cur === n ? ' selected' : ''}>${n}%</option>`);
+    return out.join('');
+  }
+  function drawBands() {
+    const b = RU.data.rules.bands;
+    $('#bandList').innerHTML = b.map((up, i) => {
+      if (i === 0) return `<div class="band"><b>Smoke only</b><span class="muted">0% — no fire showing</span></div>`;
+      const lo = b[i - 1] + 1, last = i === b.length - 1;
+      const upSel = last ? '<span>100%</span>' : `<select data-band="${i}" aria-label="Band ${i}: upper percentage">${Array.from({ length: b[i + 1] - lo }, (_, k) => lo + k).map(n => `<option value="${n}"${n === up ? ' selected' : ''}>${n}%</option>`).join('')}</select>`;
+      const del = b.length > 3 ? `<button type="button" class="btn quiet" data-delband="${i}" aria-label="Remove band ${lo} to ${up}%">Remove</button>` : '';
+      return `<div class="band"><b>Band ${i}</b><span>${lo}% to</span>${upSel}${del}</div>`;
+    }).join('');
+    $('#addBand').disabled = b.length >= 10;
+  }
   const WSOBJ_UI = { firecontrol: 'Fire control', primarysearch: 'Primary search', rescue: 'Rescue', exposures: 'Exposure protection', checkext: 'Check for extension' };
   const NEED_UI = { rescue: 'Rescue', firecontrol: 'Fire control', water: 'Water supply', search: 'Primary search', backup: 'Backup line / check for extension', vent: 'Ventilation',
     utilities: 'Control utilities', rit: 'Rapid intervention (RIT)', medical: 'Medical / rehab', exposures: 'Exposure protection', ladders: 'Ladder the building' };
   const LINE_UI = { '1.75': '1¾"', '2.5': '2½"', standpipe: 'Standpipe', bulkload: 'Bulk load', extended: 'Extended attack', deckgun: 'Deck gun', blitz: 'Blitz' };
   const CAT_UI = { residential: 'Single family residential', multifamily: 'Multi-family residential', commercial: 'Commercial', industrial: 'Industrial', mixed: 'Mixed use' };
   const STATUS_UI = { level1: 'Level one', onscene: 'On scene', staging: 'Level two staging' };
-  const OPTS = { inv: INV_UI, wsobj: WSOBJ_UI, need: NEED_UI, type: TYPE_LABEL };
+  const OPTS = { wsobj: WSOBJ_UI, need: NEED_UI, type: TYPE_LABEL };
   const RU = { data: null, orig: '' };
   const getPath = (o, p) => p.split('.').reduce((a, k) => a[k], o);
   function agTab(name) {
@@ -2207,6 +2237,8 @@ const FX = (() => {
       const sel = getPath(T, el.dataset.tk) || [];
       el.innerHTML = Object.entries(OPTS[el.dataset.opts]).map(([k, l]) => `<button type="button" data-v="${esc(k)}" aria-pressed="${sel.indexOf(k) >= 0}">${esc(l)}</button>`).join('');
     });
+    $$('#tacticsBody select[data-tn]').forEach(el => el.innerHTML = pctOptions(el.dataset.tn, T[el.dataset.tn]));
+    $('#tacticsBody select[data-tn="extTo"]').disabled = !(T.extFrom > 0);
     drawPrio();
     $('#fitTable').innerHTML = `<thead><tr><th>Objective</th>${UNIT_TYPES.map(t => `<th class="c">${esc(TYPE_LABEL[t])}</th>`).join('')}</tr></thead><tbody>` +
       Object.keys(NEED_UI).map(n => `<tr><td>${esc(NEED_UI[n])}</td>${UNIT_TYPES.map(t => `<td class="chk"><input type="checkbox" data-fit="${n}" data-t="${t}"${(T.fit[n] || []).indexOf(t) >= 0 ? ' checked' : ''} aria-label="${esc(NEED_UI[n] + ': ' + TYPE_LABEL[t])}"></td>`).join('')}</tr>`).join('') + '</tbody>';
@@ -2217,13 +2249,33 @@ const FX = (() => {
     $('#pointsGrid').innerHTML = [['fail', 'A miss'], ['warn', 'A warning'], ['order', 'Out of order (size-up)']]
       .map(([k, l]) => `<label class="f">${l}<select data-pt="${k}">${Array.from({ length: 21 }, (_, i) => `<option value="${i}"${T.points[k] === i ? ' selected' : ''}>${i} point${i === 1 ? '' : 's'}</option>`).join('')}</select></label>`).join('');
     $('#szSmall').value = Rr.sizes.small; $('#szMedium').value = Rr.sizes.medium; $('#szLarge').value = Rr.sizes.large;
-    const ALARM_UI = n => n === 1 ? 'First alarm only' : ['', '', '2nd', '3rd', '4th'][n] + ' alarm';
-    $('#lineGrids').innerHTML = Object.keys(CAT_UI).map(c => `<div class="panel"><h3>${esc(CAT_UI[c])}</h3><div class="scroll-x"><table class="t linegrid"><thead><tr><th>Fire</th><th>Acceptable lines</th><th>Preferred</th><th>Alarm expected</th></tr></thead><tbody>` +
-      Object.keys(INV_UI).map(i => { const l = Rr.lines[c][i]; return `<tr><td>${esc(INV_UI[i])}</td>
-        <td><div class="chips" data-lc="${c}" data-li="${i}">${Object.keys(LINE_UI).map(x => `<button type="button" data-v="${esc(x)}" aria-pressed="${l.accept.indexOf(x) >= 0}">${esc(LINE_UI[x])}</button>`).join('')}</div></td>
-        <td><select data-pref="${c}|${i}" aria-label="${esc(CAT_UI[c] + ', ' + INV_UI[i] + ': preferred line')}">${prefOptions(l)}</select></td>
-        <td><select data-alarm="${c}|${i}" aria-label="${esc(CAT_UI[c] + ', ' + INV_UI[i] + ': alarm')}">${[1, 2, 3, 4].map(n => `<option value="${n}"${Rr.alarms[c][i] === n ? ' selected' : ''}>${ALARM_UI(n)}</option>`).join('')}</select></td></tr>`; }).join('') + '</tbody></table></div></div>').join('');
+    drawBands(); drawLineGrids();
     rulesDirty();
+  }
+  function drawLineGrids() {
+    const Rr = RU.data.rules, B = Rr.bands;
+    const ALARM_UI = n => n === 1 ? 'First alarm only' : ['', '', '2nd', '3rd', '4th'][n] + ' alarm';
+    $('#lineGrids').innerHTML = Object.keys(CAT_UI).map(c => `<div class="panel"><h3>${esc(CAT_UI[c])}</h3><div class="scroll-x"><table class="t linegrid"><thead><tr><th>Involvement</th><th>Acceptable lines</th><th>Preferred</th><th>Alarm expected</th></tr></thead><tbody>` +
+      B.map((_, i) => { const l = Rr.lines[c][i]; return `<tr><td>${esc(bandName(B, i))}</td>
+        <td><div class="chips" data-lc="${c}" data-li="${i}">${Object.keys(LINE_UI).map(x => `<button type="button" data-v="${esc(x)}" aria-pressed="${l.accept.indexOf(x) >= 0}">${esc(LINE_UI[x])}</button>`).join('')}</div></td>
+        <td><select data-pref="${c}|${i}" aria-label="${esc(CAT_UI[c] + ', ' + bandName(B, i) + ': preferred line')}">${prefOptions(l)}</select></td>
+        <td><select data-alarm="${c}|${i}" aria-label="${esc(CAT_UI[c] + ', ' + bandName(B, i) + ': alarm')}">${[1, 2, 3, 4].map(n => `<option value="${n}"${Rr.alarms[c][i] === n ? ' selected' : ''}>${ALARM_UI(n)}</option>`).join('')}</select></td></tr>`; }).join('') + '</tbody></table></div></div>').join('');
+  }
+  /* Bands change shape: splitting copies a band's lines and alarm; removing one folds it into the next band up. */
+  function splitBand() {
+    const Rr = RU.data.rules, B = Rr.bands;
+    let best = 1; for (let i = 1; i < B.length; i++) if (B[i] - B[i - 1] > B[best] - B[best - 1]) best = i;
+    const lo = B[best - 1] + 1, hi = B[best]; if (hi - lo < 1) { toast('Every band is already as narrow as it can be.'); return; }
+    const mid = Math.floor((lo + hi) / 2);
+    B.splice(best, 0, mid);
+    Object.keys(Rr.lines).forEach(c => { Rr.lines[c].splice(best, 0, JSON.parse(JSON.stringify(Rr.lines[c][best]))); Rr.alarms[c].splice(best, 0, Rr.alarms[c][best]); });
+    drawBands(); drawLineGrids(); rulesDirty(); toast('Split ' + lo + '–' + hi + '% into ' + lo + '–' + mid + '% and ' + (mid + 1) + '–' + hi + '%.');
+  }
+  function removeBand(i) {
+    const Rr = RU.data.rules, B = Rr.bands;
+    if (i === B.length - 1) { B.splice(i - 1, 1); i = i - 1; B[B.length - 1] = 100; } else B.splice(i, 1);
+    Object.keys(Rr.lines).forEach(c => { Rr.lines[c].splice(i, 1); Rr.alarms[c].splice(i, 1); });
+    drawBands(); drawLineGrids(); rulesDirty();
   }
   const prefOptions = l => l.accept.map(x => `<option value="${esc(x)}"${x === l.preferred ? ' selected' : ''}>${esc(LINE_UI[x])}</option>`).join('');
   function drawPrio() {
@@ -2258,6 +2310,8 @@ const FX = (() => {
         }
         rulesDirty(); return;
       }
+      const db = e.target.closest('[data-delband]');
+      if (db) { removeBand(+db.dataset.delband); return; }
       const mv = e.target.closest('[data-mv]');
       if (mv) {
         const list = T.priority[mv.dataset.k], i = +mv.dataset.i;
@@ -2270,7 +2324,13 @@ const FX = (() => {
     both.forEach(body => body.addEventListener('change', e => {
       if (!RU.data) return;
       const t = e.target, T = RU.data.tactics, Rr = RU.data.rules;
-      if (t.dataset.add) { if (t.value) T.priority[t.dataset.add].push(t.value); drawPrio(); }
+      if (t.dataset.tn) {
+        T[t.dataset.tn] = +t.value;
+        if (t.dataset.tn === 'extFrom') { if (T.extFrom > 0 && T.extTo < T.extFrom) T.extTo = Math.max(T.extFrom, Math.min(100, T.defensivePct - 1)); drawRules(); }
+        if (t.dataset.tn === 'extTo' && T.extTo < T.extFrom) { T.extTo = T.extFrom; t.value = T.extTo; toast('"To" can\'t be below "from".'); }
+      }
+      else if (t.dataset.band) { Rr.bands[+t.dataset.band] = +t.value; drawBands(); drawLineGrids(); }
+      else if (t.dataset.add) { if (t.value) T.priority[t.dataset.add].push(t.value); drawPrio(); }
       else if (t.dataset.fit) { const a = T.fit[t.dataset.fit] = T.fit[t.dataset.fit] || []; if (t.checked) a.push(t.dataset.t); else a.splice(a.indexOf(t.dataset.t), 1); }
       else if (t.dataset.floor) { const a = T.floors[t.dataset.floor] = T.floors[t.dataset.floor] || []; if (t.checked) a.push(t.dataset.f); else a.splice(a.indexOf(t.dataset.f), 1); }
       else if (t.dataset.arr) T.arrival[t.dataset.arr] = t.value;
@@ -2280,6 +2340,7 @@ const FX = (() => {
       rulesDirty();
     }));
     [['szSmall', 'small'], ['szMedium', 'medium'], ['szLarge', 'large']].forEach(([id, k]) => $('#' + id).addEventListener('input', e => { if (RU.data) { RU.data.rules.sizes[k] = Math.round(+e.target.value) || 0; rulesDirty(); } }));
+    $('#addBand').onclick = () => { if (RU.data) splitBand(); };
     $('#saveRules').onclick = async () => {
       const err = $('#rulesErr'); err.hidden = true;
       const btn = $('#saveRules'); btn.disabled = true; $('#rulesHint').textContent = 'Saving…';
