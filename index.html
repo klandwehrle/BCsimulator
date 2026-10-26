@@ -49,7 +49,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .bar .grow { flex: 1; }
 .bar .dept { font-family: var(--f-mono); font-size: .75rem; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .bar nav { display: flex; gap: 4px; }
-@media (max-width: 560px) { .bar .dept { visibility: hidden; } .brand { font-size: 1.1rem; } .bar nav button { padding: 6px 8px; } }
+@media (max-width: 560px) { .bar .dept { visibility: hidden; } .brand { font-size: 1.1rem; } .bar nav button { padding: 6px 7px; } }
+@media (max-width: 430px) { .brand-text { display: none; } .bar nav button { font-size: .95rem; padding: 6px 6px; } }
 .bar nav button { background: none; border: 1px solid transparent; color: var(--bar-ink); font-family: var(--f-display); font-weight: 700; font-size: 1.02rem; letter-spacing: .06em; text-transform: uppercase; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
 .bar nav button[aria-current="page"] { border-color: var(--bar-line); background: rgba(255,255,255,.14); }
 .bar nav button:hover { background: rgba(255,255,255,.1); }
@@ -101,6 +102,24 @@ table.t { width: 100%; border-collapse: collapse; font-size: .92rem; font-varian
 table.t th { text-align: left; font-family: var(--f-mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--line); padding: 6px 8px; }
 table.t td { border-bottom: 1px solid var(--line); padding: 8px; vertical-align: top; }
 table.t tr.editing td { background: var(--accent-soft); }
+table.edit td { padding: 4px; vertical-align: middle; }
+table.edit input[type=text], table.edit input[type=number], table.edit select { min-height: 38px; padding: 6px 8px; }
+table.edit input[type=number] { width: 72px; }
+table.edit .w-name { min-width: 130px; } table.edit .w-addr { min-width: 220px; } table.edit .w-sel { min-width: 110px; }
+table.edit td.chk { text-align: center; } table.edit td.chk input { width: 20px; height: 20px; }
+table.edit tr.off td { opacity: .5; } table.edit tr.off td:first-child, table.edit tr.off td.lvl { opacity: 1; }
+@media (max-width: 640px) {
+  #apTable thead, #stTable thead { display: none; }
+  #apTable, #apTable tbody, #stTable, #stTable tbody { display: block; }
+  #apTable tr, #stTable tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  #stTable tr { grid-template-columns: 1fr; }
+  #apTable td, #stTable td { display: block; border: 0; padding: 0; }
+  #apTable td[data-label]::before, #stTable td[data-label]::before { content: attr(data-label); display: block; font-family: var(--f-mono); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+  #apTable td input, #apTable td select, #stTable td input { width: 100%; min-width: 0; }
+  #apTable td.chk { text-align: left; } #apTable td.chk input { width: 22px; }
+  #apTable tr.off td { opacity: 1; } #apTable tr.off { opacity: .6; }
+}
+table.edit tfoot td { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); padding: 6px 8px; }
 .scroll-x { overflow-x: auto; }
 
 /* dispatch */
@@ -223,11 +242,12 @@ img { max-width: 100%; }
 
 <header class="bar" id="bar" hidden>
   <div class="bar-in">
-    <button class="brand" id="brandBtn" type="button"><span class="card-mark" aria-hidden="true"></span>Size-Up Sim</button>
+    <button class="brand" id="brandBtn" type="button"><span class="card-mark" aria-hidden="true"></span><span class="brand-text">Size-Up Sim</span></button>
     <span class="dept grow" id="deptLabel"></span>
     <nav>
       <button type="button" data-nav="home">Run</button>
       <button type="button" data-nav="admin" id="navAdmin">Add</button>
+      <button type="button" data-nav="units" id="navUnits">Units</button>
       <button type="button" data-nav="settings">Setup</button>
     </nav>
   </div>
@@ -425,6 +445,39 @@ img { max-width: 100%; }
   </div>
   <p class="note bad" id="adminErr" hidden></p>
   <div class="row"><button class="btn big" type="button" id="saveBldg">Save building</button><button class="btn quiet" type="button" id="cancelEdit" hidden>Cancel editing</button><span class="muted" id="saveHint"></span></div>
+  </div>
+</section>
+
+<!-- UNITS -->
+<section data-screen="units" hidden>
+  <div style="display:grid;gap:6px"><div class="eyebrow" id="unitsDept"></div><h2>Units and stations</h2>
+    <p class="muted">Set what your agency sends on a structure fire. Members see these units at tone-out, and dispatch uses them to balance or upgrade the alarm.</p></div>
+  <p class="note bad" id="unitsDenied" hidden>Only agency admins can change units and stations.</p>
+  <div id="unitsBody" style="display:grid;gap:20px">
+  <p class="note" id="unitsDefaultNote" hidden></p>
+  <div class="panel">
+    <h3>Dispatch center</h3>
+    <label class="f" style="max-width:360px">Radio name <input type="text" id="uDispatch" placeholder="TCOMM" maxlength="40"><span class="hint">Dispatch uses this name on the readback. Members say it when they correct one.</span></label>
+  </div>
+  <div class="panel">
+    <h3>Stations</h3>
+    <div class="scroll-x"><table class="t edit" id="stTable"><thead><tr><th>Station</th><th>Address</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div><button class="btn quiet small" type="button" id="addStation">Add station</button></div>
+  </div>
+  <div class="panel">
+    <h3>Units</h3>
+    <p class="muted" style="font-size:.92rem">Minutes to arrive is how long the unit takes to reach a typical address in its first-due area, in whole minutes. Units out of service are never sent.</p>
+    <div class="scroll-x"><table class="t edit" id="apTable"><thead><tr><th>Unit</th><th>Type</th><th>Station</th><th>Staffed</th><th>Minutes</th><th>In service</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div><button class="btn quiet small" type="button" id="addUnit">Add unit</button></div>
+  </div>
+  <div class="panel">
+    <h3>Response plans</h3>
+    <p class="muted" style="font-size:.92rem">How many of each type go on each level. The member's own unit counts toward the initial assignment. Turn off Balance if you send the full package up front.</p>
+    <div class="scroll-x"><table class="t edit" id="planTable"></table></div>
+    <p class="note warn" id="planWarn" hidden></p>
+  </div>
+  <p class="note bad" id="unitsErr" hidden></p>
+  <div class="row"><button class="btn big" type="button" id="saveUnits">Save units and plans</button><button class="btn quiet" type="button" id="resetUnits">Undo changes</button><span class="muted" id="unitsHint"></span></div>
   </div>
 </section>
 
@@ -1157,7 +1210,7 @@ const FX = (() => {
   function demoSignIn(email) {
     S.session = { email, dept: demoDept(email), role: 'admin', mode: 'demo' };
     S.order = window.LocalServer.order();
-    S.apparatus = window.LocalServer.apparatus(); S.dispatchName = 'Dispatch';
+    S.apparatus = window.LocalServer.apparatus(); S.dispatchName = window.LocalServer.dispatch();
     const custom = store.get('custom', []).filter(b => b.dept === S.session.dept.id || b.dept === 'ANY');
     S.buildings = [...Samples.list(), ...custom];
     store.set('session', { email });
@@ -1184,6 +1237,7 @@ const FX = (() => {
     if (name === 'home') renderHome();
     if (name === 'settings') renderSettings();
     if (name === 'admin') renderAdmin();
+    if (name === 'units') renderUnitsScreen();
   }
 
   /* ---------- home ---------- */
@@ -1192,7 +1246,7 @@ const FX = (() => {
     const s = S.session;
     $('#deptLabel').textContent = `${s.dept.name} · ${s.email}`;
     $('#homeDept').textContent = s.mode === 'sheets' ? `${s.dept.name} · your agency's buildings` : `${s.dept.name} · demo mode`;
-    $('#navAdmin').hidden = s.role !== 'admin';
+    $('#navAdmin').hidden = s.role !== 'admin'; $('#navUnits').hidden = s.role !== 'admin';
     $('#libCount').textContent = `${S.buildings.length} buildings`;
     $('#lib').innerHTML = S.buildings.map((b, i) => `
       <article class="bldg">
@@ -1786,6 +1840,136 @@ const FX = (() => {
   }
 
 
+
+  /* ---------- admin: dispatch name, stations, units, response plans ---------- */
+  const UNIT_TYPES = ['engine', 'truck', 'aid', 'medic', 'battalion', 'tender', 'isu', 'chief'];
+  const PLAN_LEVELS = [['initial', 'Initial'], ['balance', 'Balance'], ['2', '2nd alarm'], ['3', '3rd alarm']];
+  const U = { data: null, orig: '' };
+  const dirty = () => { $('#unitsHint').textContent = JSON.stringify(U.data) === U.orig ? '' : 'Unsaved changes'; };
+  async function renderUnitsScreen() {
+    const ok = S.session.role === 'admin';
+    $('#unitsDenied').hidden = ok; $('#unitsBody').hidden = !ok;
+    if (!ok) return;
+    $('#unitsDept').textContent = `${S.session.dept.name} · ${S.session.mode === 'sheets' ? 'saves to the shared Sheet' : 'demo mode, saves on this device'}`;
+    $('#unitsErr').hidden = true; $('#unitsHint').textContent = 'Loading…';
+    try { const d = await Server.call('getUnits', {}); U.data = d; U.orig = JSON.stringify(d); }
+    catch (e) { if (e.code === 'auth') return expired(); $('#unitsHint').textContent = "Couldn't load your units. " + e.message; return; }
+    $('#unitsHint').textContent = '';
+    drawUnits();
+  }
+  function drawUnits() {
+    const d = U.data;
+    const note = $('#unitsDefaultNote');
+    note.hidden = !(d.usingDefaults || d.isDefaultSet);
+    note.textContent = d.isDefaultSet ? "You're editing the default package. Agencies that haven't entered their own units use it."
+      : "Your agency doesn't have its own units yet, so it uses the default package below. Change it and save to make it yours.";
+    $('#uDispatch').value = d.dispatch || ''; $('#uDispatch').disabled = !!d.isDefaultSet;
+    $('#stTable tbody').innerHTML = d.stations.map((st, i) => `<tr>
+      <td data-label="Station"><input type="text" class="w-name" data-st="${i}" data-k="name" value="${esc(st.name)}" aria-label="Station name" placeholder="Station 31"></td>
+      <td data-label="Address"><input type="text" class="w-addr" data-st="${i}" data-k="address" value="${esc(st.address)}" aria-label="Station address" placeholder="1231 Franz St SE"></td>
+      <td><button class="btn quiet small" type="button" data-delst="${i}">Remove</button></td></tr>`).join('') || '<tr><td colspan="3" class="muted">No stations yet.</td></tr>';
+    drawApparatus();
+    drawPlans();
+    dirty();
+  }
+  function drawApparatus() {
+    const d = U.data;
+    const stNames = d.stations.map(x => x.name).filter(Boolean);
+    $('#apTable tbody').innerHTML = d.apparatus.map((a, i) => {
+      const opts = [''].concat(stNames, stNames.indexOf(a.station) < 0 && a.station ? [a.station] : []);
+      return `<tr class="${a.inService ? '' : 'off'}">
+      <td data-label="Unit"><input type="text" class="w-name" data-ap="${i}" data-k="name" value="${esc(a.name)}" aria-label="Unit radio name" placeholder="Engine 31"></td>
+      <td data-label="Type"><select class="w-sel" data-ap="${i}" data-k="type" aria-label="Unit type">${UNIT_TYPES.map(t => `<option value="${t}"${t === a.type ? ' selected' : ''}>${TYPE_LABEL[t]}</option>`).join('')}</select></td>
+      <td data-label="Station"><select class="w-sel" data-ap="${i}" data-k="station" aria-label="Station">${opts.map(o => `<option value="${esc(o)}"${o === a.station ? ' selected' : ''}>${o ? esc(o) : 'None'}</option>`).join('')}</select></td>
+      <td data-label="Staffed"><input type="number" min="0" max="20" step="1" data-ap="${i}" data-k="staff" value="${a.staff}" aria-label="Staffing"></td>
+      <td data-label="Minutes"><input type="number" min="1" max="90" step="1" data-ap="${i}" data-k="minutes" value="${a.minutes}" aria-label="Minutes to arrive"></td>
+      <td class="chk" data-label="In service"><input type="checkbox" data-ap="${i}" data-k="inService"${a.inService ? ' checked' : ''} aria-label="In service"></td>
+      <td><button class="btn quiet small" type="button" data-delap="${i}">Remove</button></td></tr>`;
+    }).join('') || '<tr><td colspan="7" class="muted">No units yet.</td></tr>';
+  }
+  function drawPlans() {
+    const d = U.data;
+    const have = Object.fromEntries(UNIT_TYPES.map(t => [t, d.apparatus.filter(a => a.inService && a.type === t).length]));
+    $('#planTable').innerHTML = `<thead><tr><th>Level</th><th>Use</th>${UNIT_TYPES.map(t => `<th>${TYPE_LABEL[t]}</th>`).join('')}</tr></thead><tbody>` +
+      PLAN_LEVELS.map(([k, label]) => {
+        const p = d.plans[k];
+        return `<tr class="${p ? '' : 'off'}"><td class="lvl"><strong>${label}</strong></td>
+          <td class="chk">${k === 'initial' ? '' : `<input type="checkbox" data-use="${k}"${p ? ' checked' : ''} aria-label="Use ${label}">`}</td>
+          ${UNIT_TYPES.map(t => `<td><input type="number" min="0" max="30" step="1" data-pl="${k}" data-t="${t}" value="${p ? p[t] || 0 : 0}"${p ? '' : ' disabled'} aria-label="${label} ${TYPE_LABEL[t]}"></td>`).join('')}</tr>`;
+      }).join('') + `</tbody><tfoot><tr><td colspan="2">In service</td>${UNIT_TYPES.map(t => `<td>${have[t]}</td>`).join('')}</tr></tfoot>`;
+    const short = UNIT_TYPES.map(t => [t, PLAN_LEVELS.reduce((n, [k]) => n + (d.plans[k] ? +d.plans[k][t] || 0 : 0), 0), have[t]]).filter(([, need, h]) => need > h);
+    $('#planWarn').hidden = !short.length;
+    $('#planWarn').textContent = short.length ? 'All levels together call for ' + short.map(([t, need, h]) => `${need} ${TYPE_LABEL[t].toLowerCase()}${need > 1 ? 's' : ''} (${h} in service)`).join(', ') + '. On a big fire dispatch sends what it has.' : '';
+  }
+  function unitsErrors() {
+    const d = U.data, errs = [];
+    const seen = {};
+    d.apparatus.forEach((a, i) => {
+      const n = String(a.name || '').trim();
+      if (!n) errs.push(`Unit ${i + 1} needs a radio name.`);
+      else if (seen[n.toLowerCase()]) errs.push(`"${n}" is listed twice.`);
+      seen[n.toLowerCase()] = true;
+      if (!(a.minutes >= 1 && a.minutes <= 90)) errs.push(`${n || 'Unit ' + (i + 1)}: minutes to arrive must be 1 to 90.`);
+      if (!(a.staff >= 0 && a.staff <= 20)) errs.push(`${n || 'Unit ' + (i + 1)}: staffing must be 0 to 20.`);
+    });
+    const st = {};
+    d.stations.forEach((x, i) => { const n = String(x.name || '').trim(); if (!n) errs.push(`Station ${i + 1} needs a name.`); else if (st[n.toLowerCase()]) errs.push(`Station "${n}" is listed twice.`); st[n.toLowerCase()] = true; });
+    if (!d.apparatus.some(a => a.inService)) errs.push('Add at least one unit that is in service.');
+    if (!UNIT_TYPES.some(t => +d.plans.initial[t] > 0)) errs.push('The initial assignment needs at least one unit.');
+    return errs;
+  }
+  async function saveUnits() {
+    const err = $('#unitsErr'), errs = unitsErrors();
+    if (errs.length) { err.hidden = false; err.innerHTML = errs.map(esc).join('<br>'); return; }
+    err.hidden = true;
+    const btn = $('#saveUnits'); btn.disabled = true; $('#unitsHint').textContent = 'Saving…';
+    try {
+      const d = await Server.call('saveUnits', U.data);
+      U.data = d; U.orig = JSON.stringify(d);
+      S.apparatus = d.apparatus.map(a => ({ name: a.name, type: a.type, staff: a.staff }));
+      if (d.dispatch && !d.isDefaultSet) S.dispatchName = d.dispatch;
+      drawUnits(); toast('Units and plans saved.');
+    } catch (e) { if (e.code === 'auth') return expired(); err.hidden = false; err.textContent = e.message; $('#unitsHint').textContent = 'Unsaved changes'; }
+    finally { btn.disabled = false; }
+  }
+  function wireUnits() {
+    const body = $('#unitsBody');
+    body.addEventListener('input', e => {
+      const t = e.target, d = U.data; if (!d) return;
+      if (t.id === 'uDispatch') d.dispatch = t.value;
+      else if (t.dataset.st) d.stations[+t.dataset.st][t.dataset.k] = t.value;
+      else if (t.dataset.ap && t.dataset.k !== 'inService') { const a = d.apparatus[+t.dataset.ap]; a[t.dataset.k] = t.type === 'number' ? Math.round(+t.value) : t.value; if (t.dataset.k === 'type') drawPlans(); }
+      else if (t.dataset.pl) { d.plans[t.dataset.pl][t.dataset.t] = Math.max(0, Math.round(+t.value) || 0); drawPlansKeepFocus(t); }
+      dirty();
+    });
+    body.addEventListener('change', e => {
+      const t = e.target, d = U.data; if (!d) return;
+      if (t.dataset.ap && t.dataset.k === 'inService') { d.apparatus[+t.dataset.ap].inService = t.checked; t.closest('tr').classList.toggle('off', !t.checked); drawPlans(); }
+      else if (t.dataset.use) { d.plans[t.dataset.use] = t.checked ? Object.fromEntries(UNIT_TYPES.map(x => [x, 0])) : null; drawPlans(); }
+      else if (t.dataset.st && t.dataset.k === 'name') drawApparatus();
+      dirty();
+    });
+    body.addEventListener('click', e => {
+      const d = U.data; if (!d) return;
+      const a = e.target.closest('[data-delap]'), st = e.target.closest('[data-delst]');
+      if (a) { d.apparatus.splice(+a.dataset.delap, 1); drawUnits(); }
+      if (st) { d.stations.splice(+st.dataset.delst, 1); drawUnits(); }
+    });
+    $('#addStation').onclick = () => { U.data.stations.push({ name: '', address: '' }); drawUnits(); const ins = $$('#stTable [data-k="name"]'); ins[ins.length - 1].focus(); };
+    $('#addUnit').onclick = () => {
+      const st = U.data.stations[0];
+      U.data.apparatus.push({ name: '', type: 'engine', station: st ? st.name : '', staff: 3, minutes: 5, inService: true });
+      drawUnits(); const ins = $$('#apTable [data-k="name"]'); ins[ins.length - 1].focus();
+    };
+    $('#saveUnits').onclick = saveUnits;
+    $('#resetUnits').onclick = () => { if (!U.orig) return; U.data = JSON.parse(U.orig); $('#unitsErr').hidden = true; drawUnits(); toast('Changes undone.'); };
+  }
+  function drawPlansKeepFocus(t) {
+    const k = t.dataset.pl, ty = t.dataset.t, pos = t.selectionStart;
+    drawPlans();
+    const n = $(`#planTable [data-pl="${k}"][data-t="${ty}"]`); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch { } }
+  }
+
   /* ---------- wiring ---------- */
   function wire() {
     $('#loginMode').textContent = Api.url() ? "We'll email you a 6-digit code to sign in." : window.LocalServer ? 'Demo mode: built-in buildings and rules on this device.' : '';
@@ -1861,6 +2045,7 @@ const FX = (() => {
     });
     $('#cancelEdit').onclick = () => { resetForm(); renderAdmin(); toast('Editing canceled. Nothing was changed.'); };
     taggerPointer();
+    wireUnits();
   }
 
   function loginStage(stage, email) {
