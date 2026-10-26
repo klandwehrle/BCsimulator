@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#142439">
+<meta name="theme-color" content="#1c4f8f">
 <title>Size-Up Simulator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: a Blue Card tactical worksheet — pale card stock, navy ink, grease-pencil red for fire and errors; the scene sits in a dark radio-console frame. */
+/* Layout: a tactical worksheet on card stock — pale card stock, navy ink, grease-pencil red for fire and errors; the scene sits in a dark radio-console frame. */
 :root {
   --paper: #e4ebf1; --card: #f6f9fb; --ink: #142439; --muted: #56677b; --line: #c4d0db; --chip: #d9e3ec;
   --accent: #1c5aa2; --accent-ink: #ffffff; --accent-soft: #d2e1f2;
@@ -89,10 +89,10 @@ textarea { resize: vertical; }
 .hero-run { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
 @media (max-width: 620px) { .hero-run { grid-template-columns: 1fr; } }
 .lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
-.bcard { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; display: grid; grid-template-rows: auto 1fr; min-width: 0; }
-.bcard .thumb { aspect-ratio: 3 / 2; background: var(--scene); max-width: 100%; }
-.bcard .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.bcard .body { padding: 12px 14px 14px; display: grid; gap: 8px; align-content: start; }
+.bldg { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; display: grid; grid-template-rows: auto 1fr; min-width: 0; }
+.bldg .thumb { aspect-ratio: 3 / 2; background: var(--scene); max-width: 100%; }
+.bldg .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bldg .body { padding: 12px 14px 14px; display: grid; gap: 8px; align-content: start; }
 .bcard h3 { font-size: 1.15rem; }
 .facts { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { font-family: var(--f-mono); font-size: .72rem; letter-spacing: .04em; padding: 2px 8px; border-radius: 99px; background: var(--chip); color: var(--ink); white-space: nowrap; }
@@ -121,7 +121,7 @@ table.t td { border-bottom: 1px solid var(--line); padding: 8px; vertical-align:
 .split { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 820px) { .split { grid-template-columns: 1fr; } }
 
-/* Blue Card order strip */
+/* size-up order strip */
 .order { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; counter-reset: o; }
 .order li { counter-increment: o; display: flex; align-items: center; gap: 6px; font-family: var(--f-display); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; font-size: .95rem;
   border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 3px 9px 3px 4px; transition: background .2s, border-color .2s; }
@@ -143,7 +143,19 @@ textarea.report { font-family: var(--f-mono); font-size: .98rem; line-height: 1.
 /* overlay */
 .overlay { position: fixed; inset: 0; z-index: 20; background: rgba(6,10,16,.62); display: grid; place-items: center;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px; }
-.overlay .panel { max-width: 480px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+.overlay .panel { max-width: 520px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.35); max-height: calc(100vh - 40px); overflow-y: auto; }
+.readback { background: var(--accent-soft); border: 1px solid var(--line); border-left: 6px solid var(--bar-bg); border-radius: 8px; padding: 12px 14px; display: grid; gap: 4px; }
+.readback p { font-family: var(--f-mono); font-size: .95rem; line-height: 1.55; }
+.units { display: grid; gap: 4px; font-variant-numeric: tabular-nums; }
+.units .u { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); font-size: .95rem; }
+.units .u strong { font-family: var(--f-display); text-transform: uppercase; letter-spacing: .04em; font-size: 1.02rem; }
+.units .u .st { font-family: var(--f-mono); font-size: .72rem; color: var(--muted); }
+.units .u .eta { font-family: var(--f-mono); font-size: .85rem; font-weight: 600; }
+.units .u.mine { border-color: var(--accent); background: var(--accent-soft); }
+.units .u.here .eta { color: var(--ok); }
+.units .u.late .eta { color: var(--warn); }
+.units .u.new { border-style: dashed; }
+.scene .countdown { position: absolute; right: 10px; bottom: 10px; background: rgba(5,9,14,.78); color: #e2ab43; font-family: var(--f-mono); font-size: 1.1rem; padding: 6px 12px; border-radius: 6px; font-variant-numeric: tabular-nums; }
 
 /* 360 walk */
 .sides { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
@@ -158,6 +170,7 @@ textarea.report { font-family: var(--f-mono); font-size: .98rem; line-height: 1.
 .score { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
 .score .num { font-family: var(--f-display); font-weight: 700; font-size: 5rem; line-height: .85; font-variant-numeric: tabular-nums; }
 .score .num small { font-size: 1.6rem; color: var(--muted); }
+@media (max-width: 480px) { .score { gap: 14px; } .score .num { font-size: 3.6rem; } .score .num small { font-size: 1.1rem; } }
 .score .num.good { color: var(--ok); } .score .num.mid { color: var(--warn); } .score .num.low { color: var(--signal); }
 .items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .items li { display: grid; grid-template-columns: 24px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); }
@@ -224,7 +237,7 @@ img { max-width: 100%; }
 <!-- LOGIN -->
 <section data-screen="login" class="login">
   <div class="panel cardstock">
-    <div class="eyebrow">Command training · Blue Card size-up</div>
+    <div class="eyebrow">Command training · Initial radio report</div>
     <h1>Size-Up Simulator</h1>
     <p>Arrive on scene, give your initial radio report out loud, and get coached on order, approved terms, and your tactical calls.</p>
     <form id="loginForm" class="panel" style="padding:0;border:0;background:none">
@@ -265,17 +278,24 @@ img { max-width: 100%; }
   </div>
 </section>
 
-<!-- DISPATCH -->
+<!-- TONE OUT -->
 <section data-screen="dispatch" hidden>
   <div class="console">
-    <div class="row" style="justify-content:space-between"><span class="eyebrow">Dispatch · <span id="dispTime"></span></span><span class="tone" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
+    <div class="row" style="justify-content:space-between"><span class="eyebrow">Tone out · <span id="dispName">Dispatch</span> · <span id="dispTime"></span></span><span class="tone" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
     <p class="tx" id="dispText"></p>
     <div class="row">
-      <button class="btn big" type="button" id="arriveBtn">Arrive on scene</button>
+      <button class="btn big" type="button" id="respondBtn">Respond</button>
       <button class="btn ghost" type="button" id="replayBtn">Read aloud</button>
     </div>
   </div>
-  <p class="muted">Your first view is the windshield view of side Alpha. Give your initial radio report from what you can see.</p>
+  <div class="panel"><h3>Units responding</h3><div class="units" id="unitsTone"></div><p class="muted" id="unitsNote" style="font-size:.88rem">Times are minutes after you arrive.</p></div>
+</section>
+
+<!-- APPROACH -->
+<section data-screen="approach" hidden>
+  <div class="scene" id="sceneApproach"><img alt="The street 2 to 3 blocks from the address"><canvas></canvas>
+    <span class="badge">Approach · 2–3 blocks out</span><span class="countdown" id="countdown">On scene in 6</span></div>
+  <div class="row" style="justify-content:space-between"><p class="muted">Look at the sky. What does the smoke tell you before you get there?</p><button class="btn" type="button" id="arriveNowBtn">Arrive now</button></div>
 </section>
 
 <!-- WINDSHIELD -->
@@ -284,7 +304,7 @@ img { max-width: 100%; }
     <div style="display:grid;gap:12px;min-width:0">
       <div class="scene" id="sceneMain"><img alt="Side Alpha of the building, windshield view"><canvas></canvas>
         <span class="badge">Side Alpha · windshield</span><span class="clock" id="clock">0:00</span><span class="addr" id="sceneAddr"></span></div>
-      <ol class="order" id="orderStrip" aria-label="Blue Card report order"></ol>
+      <ol class="order" id="orderStrip" aria-label="Size-up report order"></ol>
     </div>
     <div class="panel">
       <h3>Initial radio report</h3>
@@ -296,6 +316,7 @@ img { max-width: 100%; }
         <textarea class="report" id="report" rows="7" placeholder="Engine 1 on scene, small 2 story single family residential…"></textarea></label>
       <p class="note warn" id="micNote" hidden></p>
       <button class="btn big" type="button" id="submitBtn">Submit report</button>
+      <div style="display:grid;gap:8px"><span class="eyebrow">Units responding</span><div class="units" id="unitsScene"></div></div>
     </div>
   </div>
 </section>
@@ -329,6 +350,9 @@ img { max-width: 100%; }
 
 <!-- DEBRIEF -->
 <section data-screen="debrief" hidden>
+  <div class="panel" id="grading"><h3>Grading your run…</h3><p class="muted">Checking your report against your agency's rules.</p></div>
+  <div class="row" id="gradeErrRow" hidden><p class="note bad" id="gradeErr"></p><button class="btn" type="button" id="retryGrade">Try again</button></div>
+  <div id="debriefBody" style="display:grid;gap:20px" hidden>
   <div class="panel score">
     <div class="num" id="scoreNum">0<small>/100</small></div>
     <div style="display:grid;gap:6px;min-width:0"><div class="eyebrow" id="scoreBldg"></div><h2 id="scoreHead"></h2><p class="muted" id="scoreSub"></p></div>
@@ -337,16 +361,17 @@ img { max-width: 100%; }
     <div style="display:grid;gap:20px;min-width:0">
       <div class="panel"><h3>What to fix</h3><ul class="items" id="fixList"></ul></div>
       <div class="panel"><h3>What the app heard</h3><div class="heard" id="heard"></div>
-        <p class="muted" style="font-size:.88rem">Blue marks are recognized size-up parts, numbered by Blue Card order. Red marks are terms that aren't approved.</p></div>
-      <div class="panel" id="r360Panel" hidden><h3>360 update</h3><ul class="items" id="r360List"></ul></div>
+        <p class="muted" style="font-size:.88rem">Blue marks are recognized size-up parts, numbered in size-up order. Red marks are terms that aren't approved.</p></div>
+      <div class="panel" id="r360Panel" hidden><h3>360 update</h3><ul class="items" id="r360List"></ul><div class="heard" id="heard360"></div></div>
       <div class="panel"><details><summary>What you got right (<span id="passCount">0</span>)</summary><ul class="items" id="passList" style="margin-top:12px"></ul></details></div>
     </div>
     <div style="display:grid;gap:20px;min-width:0">
-      <div class="panel"><h3>Model report</h3><p class="model" id="modelText"></p><button class="btn quiet small" type="button" id="speakModel">Read it aloud</button></div>
+      <div class="panel"><h3>Model report</h3><p class="model" id="modelText"></p><span class="eyebrow">Model 360 update</span><p class="model" id="model360Text"></p><button class="btn quiet small" type="button" id="speakModel">Read it aloud</button></div>
       <div class="panel"><h3>Scenario facts</h3><dl class="kv" id="facts"></dl></div>
       <div class="scene" id="sceneDebrief"><img alt="Seat of the fire"><canvas></canvas><span class="badge" id="debriefBadge"></span></div>
       <div class="row"><button class="btn" type="button" id="againBtn">Next random call</button><button class="btn ghost" type="button" id="sameBtn">Same building</button></div>
     </div>
+  </div>
   </div>
 </section>
 
@@ -375,14 +400,25 @@ img { max-width: 100%; }
   </div>
   <div class="panel">
     <h3>3. Photos and openings</h3>
+    <p class="muted" style="font-size:.92rem">Five photos: one of each side, plus an approach photo from 2–3 blocks away looking toward the building.</p>
     <div class="tabs" id="photoTabs"></div>
     <div class="row"><label class="btn quiet" for="photoInput" style="cursor:pointer">Take or choose photo</label><input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
       <span class="muted" id="photoHint" style="font-size:.9rem"></span></div>
     <div class="tagger" id="tagger"><div class="empty" id="tagEmpty">No photo yet for this side.<br>Stand back far enough to fit the whole side in the frame.</div><img alt="" hidden><canvas hidden></canvas></div>
+    <div id="boxTools" style="display:grid;gap:14px">
     <div style="display:grid;gap:8px"><span class="eyebrow">Box type</span><div class="chips" id="typeChips"></div></div>
     <div style="display:grid;gap:8px"><span class="eyebrow">Floor</span><div class="chips" id="floorChips"></div></div>
     <div style="display:grid;gap:8px"><span class="eyebrow">Boxes on this side · tap one to select, then remove it</span><div class="boxlist" id="boxList"></div>
       <div class="row"><button class="btn quiet small" type="button" id="undoBox">Undo last</button><button class="btn quiet small" type="button" id="delBox" disabled>Remove selected</button></div></div>
+    </div>
+    <p class="note" id="apTip" hidden>Tap the building in the photo. The smoke column starts there.</p>
+  </div>
+  <div class="panel">
+    <h3>4. Location check</h3>
+    <p class="muted" style="font-size:.92rem">Each photo's location comes from the photo itself or, if the photo has none, from your phone when you add it.</p>
+    <div class="scroll-x"><table class="t" id="locTable"><thead><tr><th>Photo</th><th>Location from</th><th>Check</th></tr></thead><tbody></tbody></table></div>
+    <div class="row"><button class="btn quiet" type="button" id="checkAddr">Check the address</button><span class="muted" id="addrResult" style="font-size:.92rem"></span></div>
+    <label class="row" style="font-weight:700;gap:10px;align-items:flex-start"><input type="checkbox" id="locConfirm" style="margin-top:4px"> I confirm the address is right and these photos are of this building.</label>
   </div>
   <p class="note bad" id="adminErr" hidden></p>
   <div class="row"><button class="btn big" type="button" id="saveBldg">Save building</button><span class="muted" id="saveHint"></span></div>
@@ -396,8 +432,10 @@ img { max-width: 100%; }
   <div class="panel">
     <h3>Your company</h3>
     <div class="grid2">
-      <label class="f">Unit you ride <input type="text" id="sUnit" placeholder="Engine 1"></label>
-      <label class="f">Practice aids <select id="sAids"><option value="on">Show the Blue Card order while I talk</option><option value="off">Hide it (test mode)</option></select></label>
+      <label class="f">Your unit <select id="sUnit"></select><span class="hint">Your agency's apparatus list. You're always first due.</span></label>
+      <label class="f">Unit delays <select id="sDelays"><option value="off">Everyone responds on time</option><option value="on">Sometimes a unit is delayed</option></select></label>
+      <label class="f">Dispatch readback <select id="sDispErr"><option value="on">Dispatch sometimes gets it wrong</option><option value="off">Dispatch always gets it right</option></select></label>
+      <label class="f">Practice aids <select id="sAids"><option value="on">Show the report order while I talk</option><option value="off">Hide it (test mode)</option></select></label>
       <label class="f">Dispatch voice <select id="sVoice"><option value="on">Read dispatch aloud</option><option value="off">Text only</option></select></label>
     </div>
     <div class="row"><button class="btn" type="button" id="saveSettings">Save</button><button class="btn quiet" type="button" id="signOut">Sign out</button></div>
@@ -408,450 +446,36 @@ img { max-width: 100%; }
   </div>
   <div class="panel">
     <h3>Rules in use</h3>
-    <p class="muted">These come from the shared Sheet's SizeUpOrder, ApprovedTerms, and Rules tabs. In demo mode they're the built-in defaults.</p>
-    <details><summary>Report order</summary><div class="scroll-x" style="margin-top:10px"><table class="t" id="rulesOrder"><thead><tr><th>#</th><th>Part</th><th>Required</th><th>Coaching</th></tr></thead><tbody></tbody></table></div></details>
-    <details><summary>Approved terms</summary><div class="scroll-x" style="margin-top:10px"><table class="t" id="rulesTerms"><thead><tr><th>Part</th><th>Term</th><th>Also hears</th><th>OK?</th></tr></thead><tbody></tbody></table></div></details>
+    <p class="muted">The report order comes from the shared Sheet. Approved terms and grading rules stay on the server; admins edit them in the Sheet's ApprovedTerms and Rules tabs.</p>
+    <details open><summary>Report order</summary><div class="scroll-x" style="margin-top:10px"><table class="t" id="rulesOrder"><thead><tr><th>#</th><th>Part</th><th>Required</th><th>Coaching</th></tr></thead><tbody></tbody></table></div></details>
   </div>
 </section>
 
 </div></main>
 
 <div class="overlay" id="ask360" hidden><div class="panel" role="dialog" aria-modal="true" aria-labelledby="ask360h">
-  <div class="eyebrow">Report logged · <span id="askTime"></span></div>
-  <h2 id="ask360h">Perform a 360?</h2>
-  <p>Walk around the building to see sides Bravo, Charlie, and Delta before you commit crews inside.</p>
-  <div class="row"><button class="btn big" type="button" id="do360">Walk the 360</button><button class="btn quiet" type="button" id="skip360">Skip it</button></div>
+  <div class="eyebrow">Report sent · <span id="askTime"></span></div>
+  <div class="readback"><span class="eyebrow" id="rbFrom">Dispatch</span><p id="rbText">…</p></div>
+  <div id="askChoice" style="display:grid;gap:12px">
+    <h2 id="ask360h">Next move</h2>
+    <p class="muted">Listen to the readback. If dispatch got something wrong, correct it before you move on.</p>
+    <div class="row"><button class="btn big" type="button" id="do360">Perform 360</button><button class="btn ghost" type="button" id="correctBtn">Correct dispatch</button><button class="btn quiet" type="button" id="skip360">Skip 360</button></div>
+  </div>
+  <div id="corrBox" style="display:grid;gap:12px" hidden>
+    <h2>Correct dispatch</h2>
+    <p class="muted" id="corrHint">Correct only what dispatch got wrong, for example: "Dispatch from Engine 1, correction, this is a small building."</p>
+    <div class="ptt-row">
+      <button class="ptt" type="button" id="ptt3Btn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <div class="ptt-status"><strong id="ptt3State">Tap to key up</strong></div>
+    </div>
+    <textarea class="report" id="corrText" rows="3" placeholder="Dispatch from Engine 1, correction…"></textarea>
+    <p class="note warn" id="corrNote" hidden></p>
+    <div class="row"><button class="btn big" type="button" id="sendCorr">Send correction</button><button class="btn quiet" type="button" id="cancelCorr">Back</button></div>
+  </div>
 </div></div>
 <div class="toast" id="toast" hidden></div>
 
 <script src="config.js"></script>
-<script id="defaults" type="application/json">{"order": [{"order": 1, "section": "size", "label": "Size", "required": "yes", "checkOrder": "Y", "hint": "Small, medium, large, or mega, from the square footage."}, {"order": 2, "section": "stories", "label": "Stories", "required": "yes", "checkOrder": "Y", "hint": "How many stories you can see, for example '2 story'."}, {"order": 3, "section": "type", "label": "Type", "required": "yes", "checkOrder": "Y", "hint": "The occupancy, for example 'single family residential'."}, {"order": 4, "section": "conditions", "label": "Conditions", "required": "yes", "checkOrder": "Y", "hint": "What you see and where: floor and side."}, {"order": 5, "section": "tlo", "label": "TLO / initial action", "required": "yes", "checkOrder": "Y", "hint": "Your company's action and line: 1¾, 2½, standpipe, bulk load, extended attack, or deck gun."}, {"order": 6, "section": "objectives", "label": "Objectives", "required": "yes", "checkOrder": "Y", "hint": "Fire control, primary search, rescue, or exposure protection, and where."}, {"order": 7, "section": "command", "label": "Command", "required": "yes", "checkOrder": "Y", "hint": "Name the command, for example 'Maple Command'."}, {"order": 8, "section": "accountability", "label": "Accountability", "required": "warn", "checkOrder": "Y", "hint": "Where accountability will be, if you can set it now."}, {"order": 9, "section": "strategy", "label": "Strategy", "required": "yes", "checkOrder": "Y", "hint": "Offensive or defensive."}, {"order": 10, "section": "alarms", "label": "Additional alarms", "required": "no", "checkOrder": "N", "hint": "Strike a 2nd or 3rd alarm when the fire calls for it."}], "terms": [["size", "Small", "small|small size", "small", "Y", ""], ["size", "Medium", "medium|medium size", "medium", "Y", ""], ["size", "Large", "large|large size", "large", "Y", ""], ["size", "Mega", "mega|mega size", "mega", "Y", ""], ["size", "Big", "big|huge|tiny|little|good sized|good size", "", "N", "Use small, medium, large, or mega."], ["stories", "1 story", "one story|1 story|single story|1 stories|single level|one level|1 storey", "1", "Y", ""], ["stories", "2 story", "two story|2 story|two stories|2 stories|two storey|2 level", "2", "Y", ""], ["stories", "3 story", "three story|3 story|three stories|3 stories|three storey|3 level", "3", "Y", ""], ["stories", "4 story", "four story|4 story|four stories|4 stories|4 storey", "4", "Y", ""], ["stories", "5 story", "five story|5 story|five stories|5 stories|5 storey", "5", "Y", ""], ["stories", "Split level", "split level|tri level|bi level", "split", "N", "Give the number of stories you see, for example '2 story'."], ["type", "Single family residential", "single family residential|single family|single family home|single family dwelling|residential|residence", "residential", "Y", ""], ["type", "Multi-family residential", "multi family residential|multi family|multifamily|apartment|apartments|apartment building|apartment complex|garden apartment|garden apartments|condo|condominium|condominiums", "multifamily", "Y", ""], ["type", "Commercial", "commercial|strip mall|strip center|strip commercial|retail|business|shopping center", "commercial", "Y", ""], ["type", "Industrial", "industrial|warehouse|manufacturing", "industrial", "Y", ""], ["type", "Mixed use", "mixed use|mixed occupancy", "mixed", "Y", ""], ["type", "House", "house|home|dwelling", "residential", "N", "Say 'single family residential' instead of 'house'."], ["type", "Construction type", "wood frame|frame|brick|block|ordinary construction|type 5|type v|type 3|type iii", "construction", "N", "Construction isn't part of the type here. Give the occupancy, for example 'single family residential'."], ["conditions", "Nothing showing", "nothing showing|nothing evident|no smoke showing|nothing visible", "nothing", "Y", ""], ["conditions", "Light smoke showing", "light smoke showing|light smoke|lite smoke|wisps of smoke", "smoke", "Y", ""], ["conditions", "Smoke showing", "smoke showing|smoke visible|smoke coming from|smoke from", "smoke", "Y", ""], ["conditions", "Heavy smoke showing", "heavy smoke showing|heavy smoke|thick smoke|black smoke|dark smoke", "smoke", "Y", ""], ["conditions", "Fire showing", "fire showing|flames showing|fire visible|fire from|flames from|working fire|heavy fire|fire and smoke showing|smoke and fire showing", "fire", "Y", ""], ["conditions", "Fully involved", "fully involved|full involvement|fire through the roof|heavy fire throughout", "full", "Y", ""], ["conditions", "Fully engulfed", "fully engulfed|engulfed|fully in flames", "full", "N", "Use 'fully involved'."], ["conditions", "Smoking", "smoking|smokey|smoky", "smoke", "N", "Say 'smoke showing'."], ["location", "Floor 1", "floor 1|first floor|ground floor|level 1", "floor:1", "Y", ""], ["location", "Floor 2", "floor 2|second floor|level 2", "floor:2", "Y", ""], ["location", "Floor 3", "floor 3|third floor|level 3", "floor:3", "Y", ""], ["location", "Floor 4", "floor 4|fourth floor|level 4", "floor:4", "Y", ""], ["location", "Basement", "basement|below grade|lower level|sub level|cellar", "floor:B", "Y", ""], ["location", "Attic", "attic|cockloft|cock loft", "area:attic", "Y", ""], ["location", "Roof", "roof|roof line|eaves|eave", "area:roof", "Y", ""], ["location", "Garage", "garage|attached garage", "area:garage", "Y", ""], ["location", "Side Alpha", "side alpha|alpha side|side a|alpha|alfa|front|division alpha", "side:A", "Y", ""], ["location", "Side Bravo", "side bravo|bravo side|side b|bravo|brava|brabo", "side:B", "Y", ""], ["location", "Side Charlie", "side charlie|charlie side|side c|charlie|charley|rear", "side:C", "Y", ""], ["location", "Side Delta", "side delta|delta side|side d|delta", "side:D", "Y", ""], ["tlo", "1¾ inch line", "1¾|1 3/4|1.75|1 and 3/4|one and three quarter|one and three quarters|one and a three quarter|inch and three quarter|inch and a three quarter|one three quarter|one three quarters|1 3/4 inch|1 3/4 line|1 3/4 inch line|1 3/4 hand line|1 3/4 attack line|1.75 line|1.75 inch", "1.75", "Y", ""], ["tlo", "2½ inch line", "2½|2 1/2|2.5|2 and 1/2|two and a half|two and a half inch|two and half|2 1/2 inch|2 1/2 line|2 1/2 inch line|2 1/2 hand line|2 1/2 attack line|2.5 line|2.5 inch|two point five", "2.5", "Y", ""], ["tlo", "Extended attack", "extended attack|extended lay|extended stretch|extended line", "extended", "Y", ""], ["tlo", "Horizontal standpipe", "horizontal standpipe|horizontal stand pipe|standpipe|stand pipe", "standpipe", "Y", ""], ["tlo", "Bulk load", "bulk load|bulk bed|bulkload", "bulkload", "Y", ""], ["tlo", "Deck gun", "deck gun|deck gone|master stream|deluge gun", "deckgun", "Y", ""], ["tlo", "Blitz attack", "blitz attack|blitz", "blitz", "Y", ""], ["tlo", "Attack line (size not given)", "attack line|hand line|handline|pre connect|preconnect|cross lay|crosslay", "generic", "Y", ""], ["tlo", "1½ inch line", "1½|1 1/2|1.5|inch and a half|one and a half|1 and 1/2", "1.5", "N", "1½ isn't on the approved line list. Use 1¾ or 2½."], ["objectives", "Fire control", "fire control|fire attack|extinguishment|knock down|knockdown|fire suppression|control the fire", "firecontrol", "Y", ""], ["objectives", "Primary search", "primary search|primary|search", "primarysearch", "Y", ""], ["objectives", "Rescue", "rescue|rescue mode|victim removal", "rescue", "Y", ""], ["objectives", "Exposure protection", "exposure protection|protect exposures|protect the exposures|protecting exposures|exposures|exposure", "exposures", "Y", ""], ["objectives", "Ventilation", "ventilation|vent|ventilate|vertical ventilation|horizontal ventilation", "ventilation", "Y", ""], ["objectives", "Water supply", "water supply|supply line|hydrant|forward lay|reverse lay", "water", "Y", ""], ["command", "Command", "command|comand|commands", "command", "Y", ""], ["accountability", "Accountability", "accountability|accountability location|par|personnel accountability|accountable", "accountability", "Y", ""], ["strategy", "Offensive", "offensive|offensive strategy|offensive mode|offensive operations|offense", "offensive", "Y", ""], ["strategy", "Defensive", "defensive|defensive strategy|defensive mode|defensive operations|defense", "defensive", "Y", ""], ["strategy", "Transitional", "transitional|marginal|transitional attack", "transitional", "N", "Declare offensive or defensive."], ["alarms", "Working fire assignment", "working fire assignment|working fire dispatch|full assignment", "1", "Y", ""], ["alarms", "2nd alarm", "second alarm|strike a second|request a second|second alarm assignment|greater alarm|upgrade to a second", "2", "Y", ""], ["alarms", "3rd alarm", "third alarm|strike a third|request a third", "3", "Y", ""], ["alarms", "4th alarm", "fourth alarm|strike a fourth", "4", "Y", ""]], "rules": [{"rule": "size", "category": "small", "involvement": "", "accept": "0-4999", "preferred": "Adjust to your department's size definitions"}, {"rule": "size", "category": "medium", "involvement": "", "accept": "5000-24999", "preferred": ""}, {"rule": "size", "category": "large", "involvement": "", "accept": "25000-99999", "preferred": ""}, {"rule": "size", "category": "mega", "involvement": "", "accept": "100000-", "preferred": ""}, {"rule": "line", "category": "residential", "involvement": "smoke", "accept": "1.75", "preferred": "1.75"}, {"rule": "line", "category": "residential", "involvement": "room", "accept": "1.75", "preferred": "1.75"}, {"rule": "line", "category": "residential", "involvement": "floor", "accept": "1.75|2.5", "preferred": "1.75"}, {"rule": "line", "category": "residential", "involvement": "full", "accept": "2.5|deckgun|blitz", "preferred": "deckgun"}, {"rule": "line", "category": "multifamily", "involvement": "smoke", "accept": "1.75|standpipe|bulkload|extended", "preferred": "1.75"}, {"rule": "line", "category": "multifamily", "involvement": "room", "accept": "1.75|standpipe|bulkload|extended", "preferred": "1.75"}, {"rule": "line", "category": "multifamily", "involvement": "floor", "accept": "1.75|2.5|standpipe|bulkload|extended", "preferred": "1.75"}, {"rule": "line", "category": "multifamily", "involvement": "full", "accept": "2.5|deckgun|blitz", "preferred": "deckgun"}, {"rule": "line", "category": "commercial", "involvement": "smoke", "accept": "1.75|2.5", "preferred": "1.75"}, {"rule": "line", "category": "commercial", "involvement": "room", "accept": "1.75|2.5|extended", "preferred": "2.5"}, {"rule": "line", "category": "commercial", "involvement": "floor", "accept": "2.5|extended|bulkload", "preferred": "2.5"}, {"rule": "line", "category": "commercial", "involvement": "full", "accept": "2.5|deckgun|blitz", "preferred": "deckgun"}, {"rule": "line", "category": "industrial", "involvement": "smoke", "accept": "1.75|2.5", "preferred": "2.5"}, {"rule": "line", "category": "industrial", "involvement": "room", "accept": "2.5|extended", "preferred": "2.5"}, {"rule": "line", "category": "industrial", "involvement": "floor", "accept": "2.5|extended|bulkload", "preferred": "2.5"}, {"rule": "line", "category": "industrial", "involvement": "full", "accept": "2.5|deckgun|blitz", "preferred": "deckgun"}, {"rule": "line", "category": "mixed", "involvement": "smoke", "accept": "1.75|standpipe|bulkload|extended", "preferred": "1.75"}, {"rule": "line", "category": "mixed", "involvement": "room", "accept": "1.75|2.5|standpipe|bulkload|extended", "preferred": "1.75"}, {"rule": "line", "category": "mixed", "involvement": "floor", "accept": "1.75|2.5|standpipe|bulkload|extended", "preferred": "2.5"}, {"rule": "line", "category": "mixed", "involvement": "full", "accept": "2.5|deckgun|blitz", "preferred": "deckgun"}, {"rule": "alarm", "category": "residential", "involvement": "full", "accept": "2", "preferred": ""}, {"rule": "alarm", "category": "multifamily", "involvement": "floor", "accept": "2", "preferred": ""}, {"rule": "alarm", "category": "multifamily", "involvement": "full", "accept": "3", "preferred": ""}, {"rule": "alarm", "category": "commercial", "involvement": "floor", "accept": "2", "preferred": ""}, {"rule": "alarm", "category": "commercial", "involvement": "full", "accept": "3", "preferred": ""}, {"rule": "alarm", "category": "industrial", "involvement": "floor", "accept": "2", "preferred": ""}, {"rule": "alarm", "category": "industrial", "involvement": "full", "accept": "3", "preferred": ""}, {"rule": "alarm", "category": "mixed", "involvement": "floor", "accept": "2", "preferred": ""}, {"rule": "alarm", "category": "mixed", "involvement": "full", "accept": "3", "preferred": ""}]}</script>
-<script>
-/* ===== Size-Up engine: text normalizing, scenario generation, grading ===== */
-const Engine = (() => {
-  const NUM = { one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10',
-    first: '1st', second: '2nd', third: '3rd', fourth: '4th', fifth: '5th' };
-
-  function normalize(s) {
-    s = ' ' + String(s || '').toLowerCase() + ' ';
-    s = s.replace(/¾/g, ' 3/4 ').replace(/½/g, ' 1/2 ').replace(/¼/g, ' 1/4 ');
-    s = s.replace(/[’']/g, '');
-    s = s.replace(/(\d)\.(\d)/g, '$1§$2');
-    s = s.replace(/(\d)\s*\/\s*(\d)/g, '$1¦$2');
-    s = s.replace(/[^a-z0-9§¦]+/g, ' ');
-    s = s.replace(/§/g, '.').replace(/¦/g, '/');
-    s = s.replace(/\b[a-z]+\b/g, w => NUM[w] || w);
-    s = s.replace(/\b(\d)\s+(st|nd|rd|th)\b/g, '$1$2');
-    s = s.replace(/\s+/g, ' ');
-    // Spoken fractions and hose sizes: every way of saying 1¾, 2½ and 1½ becomes one token.
-    s = s.replace(/\b(\d) point (\d)\b/g, '$1.$2')
-      .replace(/\b3 quarters?\b/g, '3/4').replace(/\band 3 4\b/g, 'and 3/4')
-      .replace(/\band (?:a )?half\b/g, 'and 1/2').replace(/\b(\d) half\b/g, '$1 1/2')
-      .replace(/\b1 (?:inch )?(?:and )?(?:a )?3\/4\b/g, '1.75').replace(/\b(?:an? )?inch (?:and )?(?:a )?3\/4\b/g, '1.75')
-      .replace(/\b2 (?:inch )?(?:and )?(?:a )?1\/2\b/g, '2.5')
-      .replace(/\b1 (?:inch )?(?:and )?(?:a )?1\/2\b/g, '1.5').replace(/\b(?:an? )?inch (?:and )?(?:a )?1\/2\b/g, '1.5')
-      .replace(/\b(1\.75|2\.5|1\.5) inch(es)?\b/g, '$1');
-    return s.trim();
-  }
-
-  const SECTION_LABEL = { location: 'Location' };
-  const INV_LABEL = { smoke: 'smoke-only incident', room: 'single-room fire', floor: 'fire involving part of the building', full: 'fully involved building' };
-  const LINE_LABEL = { '1.75': '1¾" line', '2.5': '2½" line', standpipe: 'horizontal standpipe', bulkload: 'bulk load', extended: 'extended attack', deckgun: 'deck gun', blitz: 'blitz attack', generic: 'attack line', '1.5': '1½" line' };
-  const OBJ_LABEL = { firecontrol: 'fire control', primarysearch: 'primary search', rescue: 'rescue', exposures: 'exposure protection', ventilation: 'ventilation', water: 'water supply' };
-  const CAT_LABEL = { residential: 'single family residential', multifamily: 'multi-family residential', commercial: 'commercial', industrial: 'industrial', mixed: 'mixed use' };
-  const SIDE_NAME = { A: 'Alpha', B: 'Bravo', C: 'Charlie', D: 'Delta' };
-  const HAZARDS = {
-    basement: { label: 'Basement', words: ['basement', 'below grade', 'cellar', 'lower level'] },
-    propane: { label: 'Propane tank', words: ['propane', 'lp', 'tank'] },
-    pool: { label: 'Pool', words: ['pool'] },
-    powerlines: { label: 'Overhead power lines', words: ['power line', 'power lines', 'wires', 'overhead lines', 'lines down'] },
-    truss: { label: 'Lightweight truss roof', words: ['truss', 'trusses', 'lightweight'] },
-    cockloft: { label: 'Common cockloft / attic', words: ['cockloft', 'cock loft', 'common attic', 'attic'] },
-    hvac: { label: 'Rooftop HVAC units', words: ['hvac', 'rooftop units', 'roof units', 'air handler', 'rooftop unit'] },
-    bars: { label: 'Security bars', words: ['bars', 'security bars', 'burglar bars'] },
-    gasmeter: { label: 'Gas meters', words: ['gas meter', 'gas meters', 'meters', 'gas'] },
-    solar: { label: 'Solar panels', words: ['solar', 'panels'] },
-    hazmat: { label: 'Hazardous materials', words: ['hazmat', 'haz mat', 'hazardous', 'chemicals'] },
-    battery: { label: 'EV / battery storage', words: ['ev', 'battery', 'batteries', 'charger'] },
-    other: { label: 'Other hazard', words: [] }
-  };
-
-  /* ---------- config ---------- */
-  function prepConfig(cfg) {
-    const terms = (cfg.terms || []).map(t => Array.isArray(t)
-      ? { section: t[0], term: t[1], variants: t[2], value: t[3], approved: t[4], coach: t[5] } : t)
-      .map(t => ({ ...t, section: String(t.section).trim().toLowerCase(), value: String(t.value ?? '').trim(),
-        approved: String(t.approved || 'Y').trim().toUpperCase().startsWith('N') ? 'N' : 'Y' }));
-    const order = (cfg.order || []).map(o => ({ ...o, section: String(o.section).trim().toLowerCase(),
-      required: String(o.required || 'yes').toLowerCase(), checkOrder: String(o.checkOrder || 'Y').toUpperCase().startsWith('N') ? 'N' : 'Y' }))
-      .sort((a, b) => Number(a.order) - Number(b.order));
-    const rules = (cfg.rules || []).map(r => ({ ...r, rule: String(r.rule).toLowerCase(), category: String(r.category || '').toLowerCase(), involvement: String(r.involvement || '').toLowerCase() }));
-    const lex = {};
-    for (const t of terms) {
-      const vs = new Set([t.term, ...String(t.variants || '').split('|')].map(v => normalize(v)).filter(Boolean));
-      for (const v of vs) {
-        const toks = v.split(' ');
-        (lex[toks[0]] = lex[toks[0]] || []).push({ toks, entry: t });
-      }
-    }
-    for (const k in lex) lex[k].sort((a, b) => b.toks.length - a.toks.length);
-    return { terms, order, rules, lex };
-  }
-
-  function tokenize(text, cfg) {
-    const norm = normalize(text);
-    const tokens = norm ? norm.split(' ') : [];
-    const matches = [];
-    for (let i = 0; i < tokens.length;) {
-      const cands = cfg.lex[tokens[i]];
-      let hit = null;
-      if (cands) for (const c of cands) {
-        if (c.toks.every((t, j) => tokens[i + j] === t)) { hit = c; break; }
-      }
-      if (hit) { matches.push({ section: hit.entry.section, entry: hit.entry, start: i, end: i + hit.toks.length, said: tokens.slice(i, i + hit.toks.length).join(' ') }); i += hit.toks.length; }
-      else i++;
-    }
-    return { norm, tokens, matches };
-  }
-
-  /* ---------- building geometry ---------- */
-  const floorNum = f => f === 'B' ? 0 : f === 'R' ? 99 : Number(f);
-  function sideWall(side) {
-    if (side.wall) return side.wall;
-    const ops = (side.openings || []).filter(o => o.type !== 'roof');
-    if (!ops.length) return { x0: 0, x1: 1 };
-    return { x0: Math.min(...ops.map(o => o.x)), x1: Math.max(...ops.map(o => o.x + o.w)) };
-  }
-  function planXY(sideKey, u) {
-    switch (sideKey) {
-      case 'A': return { x: u, y: 0 };
-      case 'B': return { x: 0, y: 1 - u };
-      case 'C': return { x: 1 - u, y: 1 };
-      default: return { x: 1, y: u };
-    }
-  }
-  function openingsOf(b) {
-    const out = [];
-    for (const s of ['A', 'B', 'C', 'D']) {
-      const side = b.sides[s]; if (!side) continue;
-      const wall = sideWall(side);
-      for (const o of side.openings || []) {
-        const u = Math.min(1, Math.max(0, (o.x + o.w / 2 - wall.x0) / Math.max(0.01, wall.x1 - wall.x0)));
-        const p = planXY(s, u);
-        out.push({ ...o, side: s, n: floorNum(o.type === 'roof' ? 'R' : o.fl), u, px: p.x * (b.planW || 40), py: p.y * (b.planD || 40) });
-      }
-    }
-    return out;
-  }
-
-  /* ---------- scenario ---------- */
-  const pickW = (rng, arr) => { const t = arr.reduce((s, a) => s + a[1], 0); let r = rng() * t; for (const a of arr) { if ((r -= a[1]) <= 0) return a[0]; } return arr[0][0]; };
-  const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
-
-  function makeScenario(b, opts = {}) {
-    const rng = opts.rng || Math.random;
-    const ops = openingsOf(b);
-    const walls = ops.filter(o => o.type !== 'roof');
-    if (!walls.length) throw new Error('This building has no marked openings.');
-    const inv = opts.involvement || pickW(rng, [['smoke', 3], ['room', 4], ['floor', 3], ['full', 2]]);
-    const origin = opts.originId ? walls.find(o => o.id === opts.originId) : pick(rng, walls);
-    const maxDim = Math.max(b.planW || 40, b.planD || 40);
-    const dist = o => Math.hypot(o.px - origin.px, o.py - origin.py) / maxDim;
-    const cond = {};
-    for (const o of walls) {
-      const d = dist(o), df = o.n - origin.n;
-      let c = 'none';
-      if (o.id === origin.id) c = inv === 'smoke' ? 'smokeHeavy' : 'fire';
-      else if (inv === 'smoke') { if (df === 0 && d < 0.35) c = d < 0.18 ? 'smokeHeavy' : 'smokeLight'; else if (df === 1 && d < 0.3) c = 'smokeLight'; }
-      else if (inv === 'room') {
-        if (df === 0) c = d < 0.14 ? 'fire' : d < 0.5 ? 'smokeHeavy' : 'smokeLight';
-        else if (df === 1) c = d < 0.35 ? 'smokeHeavy' : d < 0.7 ? 'smokeLight' : 'none';
-        else if (df > 1) c = d < 0.4 ? 'smokeLight' : 'none';
-        else c = d < 0.3 ? 'smokeLight' : 'none';
-      } else if (inv === 'floor') {
-        if (df === 0) c = d < 0.6 ? 'fire' : 'smokeHeavy';
-        else if (df === 1) c = d < 0.5 ? 'smokeHeavy' : 'smokeLight';
-        else if (df > 1) c = d < 0.6 ? 'smokeLight' : 'none';
-        else c = d < 0.4 ? 'smokeLight' : 'none';
-      } else {
-        c = (o.n === 0 && origin.n !== 0) ? 'smokeHeavy' : (rng() < 0.15 ? 'smokeHeavy' : 'fire');
-      }
-      cond[o.id] = c;
-    }
-    const topFloor = Math.max(...walls.map(o => o.n));
-    for (const o of ops.filter(o => o.type === 'roof')) {
-      const mid = planXY(o.side, 0.5);
-      const ds = Math.hypot(mid.x * (b.planW || 40) - origin.px, mid.y * (b.planD || 40) - origin.py) / maxDim;
-      const near = Math.max(0.35, 1 - ds * 0.6);
-      let c = 'none';
-      if (inv === 'smoke') c = origin.n === 0 ? (ds < 0.6 ? 'smokeLight' : 'none') : 'smokeLight';
-      else if (inv === 'room') c = origin.n === topFloor ? 'smokeHeavy' : 'smokeLight';
-      else if (inv === 'floor') c = 'smokeHeavy';
-      else c = 'fire';
-      cond[o.id] = c; o.intensity = near;
-    }
-    const roofIntensity = Object.fromEntries(ops.filter(o => o.type === 'roof').map(o => [o.id, o.intensity]));
-
-    let victim = null, reported = false;
-    const occupied = ['residential', 'multifamily', 'mixed'].includes(b.category);
-    if (occupied && inv !== 'full' && rng() < (opts.victimChance ?? 0.35)) {
-      const cands = walls.filter(o => o.side === 'A' && o.type === 'window' && o.n >= 1 && cond[o.id] !== 'fire');
-      const upper = cands.filter(o => o.n >= 2);
-      const pool = upper.length ? upper : cands;
-      if (pool.length) { const w = pick(rng, pool); victim = { openingId: w.id, fl: String(w.n) }; }
-    }
-    if (occupied && !victim && rng() < 0.3) reported = true;
-
-    const wind = (rng() * 2 - 1) * 0.6;
-    const sc = { id: 'S' + Date.now().toString(36) + Math.floor(rng() * 1e4), buildingId: b.id, involvement: inv,
-      origin: { id: origin.id, side: origin.side, fl: origin.n === 0 ? 'B' : String(origin.n), type: origin.type },
-      cond, roofIntensity, victim, reported, wind };
-    sc.dispatch = dispatchText(b, sc, opts.unit || 'Engine 1');
-    return sc;
-  }
-
-  function dispatchText(b, sc, unit) {
-    const fire = sc.involvement !== 'smoke';
-    let note;
-    if (sc.victim || sc.reported) note = 'Caller states a resident may still be inside.';
-    else if (b.category === 'commercial' || b.category === 'industrial') note = fire ? 'Alarm company reports a fire alarm, and a passerby reports flames.' : 'Alarm company reports a smoke detector activation. A passerby reports smoke.';
-    else if (sc.origin.side === 'C' && fire) note = 'Neighbor reports flames from the rear of the building.';
-    else if (sc.origin.fl === 'B') note = 'Caller reports smoke coming up from the basement.';
-    else note = fire ? 'Multiple callers report fire and smoke from the building.' : 'Caller reports smoke inside the building.';
-    return `${unit}, respond to a reported structure fire at ${b.address}. ${note}`;
-  }
-
-  const RANK = { none: 0, smokeLight: 1, smokeHeavy: 2, fire: 3 };
-  function alphaView(b, sc) {
-    const ops = openingsOf(b).filter(o => o.side === 'A');
-    let max = 0; for (const o of ops) max = Math.max(max, RANK[sc.cond[o.id]] || 0);
-    const floors = [...new Set(ops.filter(o => o.type !== 'roof' && (RANK[sc.cond[o.id]] || 0) === max && max > 0).map(o => o.n === 0 ? 'B' : String(o.n)))];
-    const roofOnly = max > 0 && !floors.length;
-    const cls = sc.involvement === 'full' ? 'full' : max === 3 ? 'fire' : max > 0 ? 'smoke' : 'nothing';
-    return { cls, maxRank: max, floors, roofOnly, heavy: max >= 2 };
-  }
-
-  function sizeClass(sqft, cfg) {
-    for (const r of cfg.rules.filter(r => r.rule === 'size')) {
-      const [lo, hi] = String(r.accept).split('-');
-      if (sqft >= Number(lo || 0) && (hi === undefined || hi === '' || sqft <= Number(hi))) return r.category;
-    }
-    return 'medium';
-  }
-  function lineRule(cat, inv, cfg) {
-    const r = cfg.rules.find(r => r.rule === 'line' && r.category === cat && r.involvement === inv)
-      || cfg.rules.find(r => r.rule === 'line' && r.category === 'residential' && r.involvement === inv);
-    return r ? { accept: String(r.accept).split('|').map(s => s.trim()).filter(Boolean), preferred: String(r.preferred || '').trim() || String(r.accept).split('|')[0] } : { accept: ['1.75'], preferred: '1.75' };
-  }
-  function alarmLevel(cat, inv, cfg) {
-    const r = cfg.rules.find(r => r.rule === 'alarm' && r.category === cat && r.involvement === inv);
-    return r ? Number(r.accept) || 1 : 1;
-  }
-
-  function expected(b, sc, cfg) {
-    const av = alphaView(b, sc);
-    const strategy = sc.involvement === 'full' ? 'defensive' : 'offensive';
-    const line = lineRule(b.category, sc.involvement, cfg);
-    let objectives;
-    if (strategy === 'defensive') objectives = ['exposures'];
-    else objectives = ['firecontrol', sc.victim ? 'rescue' : 'primarysearch'];
-    return { size: sizeClass(b.sqft, cfg), stories: String(b.stories), category: b.category, alpha: av, strategy, line,
-      objectives, alarm: alarmLevel(b.category, sc.involvement, cfg) };
-  }
-
-  /* ---------- grading ---------- */
-  const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
-  const floorWord = f => f === 'B' ? 'the basement' : `floor ${f}`;
-
-  function grade(b, sc, text, cfgIn, unit = 'Engine 1') {
-    const cfg = cfgIn.lex ? cfgIn : prepConfig(cfgIn);
-    const tk = tokenize(text, cfg);
-    const exp = expected(b, sc, cfg);
-    const items = [];
-    const add = (area, status, section, msg) => items.push({ area, status, section, msg });
-    const label = s => (cfg.order.find(o => o.section === s) || {}).label || SECTION_LABEL[s] || cap(s);
-
-    const groups = {};
-    let anchor = null;
-    for (const m of tk.matches) {
-      if (m.section === 'location') { if (anchor) anchor.locs.push(m); continue; }
-      const g = groups[m.section] = groups[m.section] || { all: [], locs: [] };
-      g.all.push(m); anchor = g;
-    }
-    const first = s => groups[s] && groups[s].all[0];
-    const pos = s => !groups[s] ? -1 : (s === 'strategy' ? groups[s].all[groups[s].all.length - 1].start : groups[s].all[0].start);
-    const vals = s => groups[s] ? groups[s].all.map(m => m.entry.value) : [];
-    const locVals = s => groups[s] ? groups[s].locs.map(m => m.entry.value) : [];
-
-    /* order */
-    const seq = cfg.order.filter(o => o.checkOrder === 'Y' && groups[o.section]).map(o => ({ o, p: pos(o.section), idx: cfg.order.indexOf(o) })).sort((a, b) => a.p - b.p);
-    const n = seq.length, L = Array(n).fill(1), prev = Array(n).fill(-1);
-    for (let i = 0; i < n; i++) for (let j = 0; j < i; j++) if (seq[j].idx < seq[i].idx && L[j] + 1 > L[i]) { L[i] = L[j] + 1; prev[i] = j; }
-    let best = -1; for (let i = 0; i < n; i++) if (best < 0 || L[i] > L[best]) best = i;
-    const keep = new Set(); for (let i = best; i >= 0; i = prev[i]) keep.add(i);
-    let orderOk = true;
-    seq.forEach((s, i) => {
-      if (keep.has(i)) return;
-      orderOk = false;
-      const before = seq.filter((t, j) => keep.has(j) && t.idx < s.idx).pop();
-      const after = seq.find((t, j) => keep.has(j) && t.idx > s.idx);
-      const where = before && after ? `after ${before.o.label} and before ${after.o.label}` : before ? `after ${before.o.label}` : after ? `before ${after.o.label}` : 'in its place';
-      add('order', 'fail', s.o.section, `You went out of order: ${s.o.label} belongs ${where}.`);
-    });
-    if (orderOk && n > 1) add('order', 'pass', null, 'Your report followed the Blue Card order.');
-
-    /* approved terms */
-    const flagged = new Set();
-    for (const m of tk.matches) {
-      if (m.entry.approved === 'N' && !flagged.has(m.entry.term)) {
-        flagged.add(m.entry.term);
-        add('terms', 'fail', m.section, `"${m.said}" isn't on the approved ${label(m.section)} list. ${m.entry.coach || ''}`.trim());
-      }
-    }
-    if (!flagged.size && tk.matches.length) add('terms', 'pass', null, 'Every recognized term is on the approved list.');
-
-    /* completeness */
-    for (const o of cfg.order) {
-      if (groups[o.section]) continue;
-      if (o.required === 'yes') add('missing', 'fail', o.section, `You left out ${o.label}. ${o.hint || ''}`.trim());
-      else if (o.required === 'warn') add('missing', 'warn', o.section, `Consider adding ${o.label}. ${o.hint || ''}`.trim());
-    }
-
-    /* decisions */
-    if (first('size') && first('size').entry.value && first('size').entry.approved === 'Y') {
-      const v = first('size').entry.value;
-      if (v === exp.size) add('decision', 'pass', 'size', `Size: ${v} is right for ${b.sqft.toLocaleString('en-US')} sq ft.`);
-      else add('decision', 'fail', 'size', `Size: you called it ${v}. At ${b.sqft.toLocaleString('en-US')} sq ft this building is ${exp.size}.`);
-    }
-    if (first('stories')) {
-      const v = first('stories').entry.value;
-      if (v === exp.stories) add('decision', 'pass', 'stories', `Stories: ${v} is correct.`);
-      else if (/^\d+$/.test(v)) add('decision', 'fail', 'stories', `Stories: this building has ${exp.stories} ${exp.stories === '1' ? 'story' : 'stories'}, not ${v}.`);
-    }
-    if (first('type')) {
-      const cats = groups.type.all.filter(m => m.entry.approved === 'Y').map(m => m.entry.value).filter(v => CAT_LABEL[v]);
-      const ok = b.typeCategories || [b.category];
-      if (cats.length) {
-        if (cats[0] === ok[0]) add('decision', 'pass', 'type', `Type: ${CAT_LABEL[cats[0]]} is correct.`);
-        else if (ok.includes(cats[0])) add('decision', 'warn', 'type', `Type: be more specific and say "${b.typeLabel || CAT_LABEL[ok[0]]}".`);
-        else add('decision', 'fail', 'type', `Type: this is a ${b.typeLabel || CAT_LABEL[ok[0]]} building, not ${CAT_LABEL[cats[0]]}.`);
-      }
-    }
-    if (first('conditions')) {
-      const SEV = { nothing: 0, smoke: 1, fire: 2, full: 3 };
-      const said = vals('conditions').reduce((m, v) => SEV[v] > SEV[m] ? v : m, 'nothing');
-      const want = exp.alpha.cls;
-      if (said === want) add('decision', 'pass', 'conditions', `Conditions: "${first('conditions').said}" matches what side Alpha shows.`);
-      else if (want === 'full' && said === 'fire') add('decision', 'warn', 'conditions', 'Conditions: fire is showing from the whole building. Report it as "fully involved."');
-      else if (want === 'fire' && said === 'full') add('decision', 'warn', 'conditions', 'Conditions: the fire is not through the whole building yet. Report "fire showing" and where.');
-      else if (SEV[said] < SEV[want]) add('decision', 'fail', 'conditions', want === 'smoke' ? 'Conditions: smoke is visible from side Alpha. Report "smoke showing" and where.' : 'Conditions: there is fire showing from side Alpha. Report "fire showing" and where.');
-      else add('decision', 'fail', 'conditions', want === 'smoke' ? 'Conditions: only smoke is showing from side Alpha. Don\'t report fire you can\'t see.' : 'Conditions: nothing is showing from side Alpha.');
-      const locs = locVals('conditions');
-      if (!locs.length && want !== 'nothing' && want !== 'full') add('decision', 'warn', 'conditions', 'Conditions: add where you see it, for example "from floor 2, side Alpha."');
-      else {
-        const fl = locs.filter(v => v.startsWith('floor:')).map(v => v.slice(6));
-        if (fl.length && exp.alpha.floors.length && !fl.some(f => exp.alpha.floors.includes(f)) && want !== 'full')
-          add('decision', 'warn', 'conditions', `Conditions location: the heaviest conditions on side Alpha are on ${exp.alpha.floors.map(floorWord).join(' and ')}.`);
-      }
-    }
-    if (groups.tlo) {
-      const lines = vals('tlo').filter(v => v && v !== 'generic');
-      if (!lines.length) add('decision', 'fail', 'tlo', 'TLO: name the line size, for example "1¾."');
-      else if (lines.some(v => exp.line.accept.includes(v))) {
-        const used = lines.find(v => exp.line.accept.includes(v));
-        add('decision', 'pass', 'tlo', `TLO: a ${LINE_LABEL[used] || used} fits a ${INV_LABEL[sc.involvement]} in this building.`);
-      } else add('decision', 'fail', 'tlo', `TLO: for a ${INV_LABEL[sc.involvement]} in a ${CAT_LABEL[b.category]} building, use ${exp.line.accept.map(v => LINE_LABEL[v] || v).join(', ')}.`);
-      if (exp.strategy === 'offensive' && !locVals('tlo').length) add('decision', 'warn', 'tlo', 'TLO: say where the line is going, for example "to floor 2 through the front door."');
-    }
-    if (groups.objectives) {
-      const said = new Set(vals('objectives'));
-      for (const o of exp.objectives) {
-        if (said.has(o)) add('decision', 'pass', 'objectives', `Objectives: ${OBJ_LABEL[o]} is included.`);
-        else if (o === 'rescue') add('decision', 'fail', 'objectives', `Objectives: there's a victim at a floor ${sc.victim.fl} window on side Alpha. Make rescue your objective.`);
-        else if (o === 'primarysearch' && said.has('rescue')) add('decision', 'warn', 'objectives', 'Objectives: no victim is visible. Call it a primary search unless you have a known rescue.');
-        else add('decision', 'fail', 'objectives', `Objectives: add ${OBJ_LABEL[o]}.`);
-      }
-      if (exp.strategy === 'defensive' && (said.has('primarysearch') || said.has('rescue')))
-        add('decision', 'fail', 'objectives', 'Objectives: an interior search or rescue conflicts with a defensive strategy.');
-      if (!locVals('objectives').length && exp.strategy === 'offensive') add('decision', 'warn', 'objectives', 'Objectives: say where, for example "primary search on floor 2."');
-    }
-    if (groups.command) {
-      const m = first('command');
-      const w = m.start > 0 ? tk.tokens[m.start - 1] : '';
-      const cn = normalize(b.command || '');
-      if (cn && w && w !== cn && !['have', 'assume', 'assuming', 'establish', 'establishing', 'take', 'taking', 'in', 'of'].includes(w))
-        add('decision', 'warn', 'command', `Command: name it after the street, "${b.command} Command."`);
-      else if (cn && w !== cn) add('decision', 'warn', 'command', `Command: give it a name, "${b.command} Command."`);
-      else add('decision', 'pass', 'command', `Command: "${b.command} Command" established.`);
-    }
-    if (groups.strategy) {
-      const v = groups.strategy.all[groups.strategy.all.length - 1].entry.value;
-      if (v === exp.strategy) add('decision', 'pass', 'strategy', `Strategy: ${v} is the right call.`);
-      else if (v === 'offensive' || v === 'defensive') add('decision', 'fail', 'strategy', exp.strategy === 'defensive' ? 'Strategy: the building is fully involved. This is a defensive fire.' : 'Strategy: the building is savable and the fire is not through the whole building. Go offensive.');
-    }
-    {
-      const said = Math.max(1, ...vals('alarms').map(Number).filter(Boolean));
-      if (exp.alarm > 1 && said < exp.alarm) add('decision', 'warn', 'alarms', `Alarms: this fire calls for a ${['', '', '2nd', '3rd', '4th'][exp.alarm]} alarm.`);
-      else if (exp.alarm > 1) add('decision', 'pass', 'alarms', `Alarms: the ${['', '', '2nd', '3rd', '4th'][said]} alarm matches this fire.`);
-      else if (said > 1) add('decision', 'info', 'alarms', `Alarms: a ${['', '', '2nd', '3rd', '4th'][said]} alarm may be more than this fire needs.`);
-    }
-
-    const W = { fail: 10, warn: 4 };
-    let score = 100;
-    for (const it of items) score -= (it.area === 'order' && it.status === 'fail') ? 8 : (W[it.status] || 0);
-    score = Math.max(0, Math.min(100, score));
-    return { score, items, tokens: tk.tokens, matches: tk.matches, groups: Object.keys(groups), expected: exp, model: modelReport(b, sc, cfg, unit) };
-  }
-
-  function modelReport(b, sc, cfgIn, unit = 'Engine 1') {
-    const cfg = cfgIn.lex ? cfgIn : prepConfig(cfgIn);
-    const exp = expected(b, sc, cfg);
-    const av = exp.alpha;
-    const fl = av.floors.length ? av.floors.map(f => f === 'B' ? 'the basement' : `floor ${f}`).join(' and ') : '';
-    let cond;
-    if (av.cls === 'full') cond = 'fully involved';
-    else if (av.cls === 'fire') cond = `fire showing from ${fl}, side Alpha`;
-    else if (av.cls === 'smoke') cond = `${av.heavy ? 'heavy' : 'light'} smoke showing ${av.roofOnly ? 'from the eaves' : `from ${fl}`}, side Alpha`;
-    else cond = 'nothing showing';
-    const tgt = sc.origin.fl === 'B' ? 'the basement' : `floor ${av.floors.find(f => f !== 'B') || sc.origin.fl}`;
-    const line = LINE_LABEL[exp.line.preferred] || exp.line.preferred;
-    const parts = [`${unit} on scene.`, `${cap(exp.size)}, ${b.stories} story, ${b.typeLabel || CAT_LABEL[b.category]}.`, `${cap(cond)}.`];
-    if (exp.strategy === 'offensive') {
-      const objs = sc.victim ? `rescue at the floor ${sc.victim.fl} window on side Alpha and fire control on ${tgt}` : `fire control and primary search on ${tgt}`;
-      parts.push(`${unit} will be stretching a ${line} through side Alpha to ${tgt}.`, `Objectives: ${objs}.`);
-    } else parts.push(`${unit} will be setting up the ${line} on side Alpha.`, 'Objectives: exposure protection.');
-    parts.push(`${unit} will be ${b.command} Command.`, `Accountability at ${unit}.`, `${cap(exp.strategy)} strategy.`);
-    if (exp.alarm > 1) parts.push(`Strike a ${['', '', 'second', 'third', 'fourth'][exp.alarm]} alarm.`);
-    return parts.join(' ');
-  }
-
-  function grade360(b, sc, text, cfgIn) {
-    const cfg = cfgIn.lex ? cfgIn : prepConfig(cfgIn);
-    const tk = tokenize(text, cfg);
-    const padded = ' ' + tk.norm + ' ';
-    const items = [];
-    const locs = tk.matches.filter(m => m.section === 'location').map(m => m.entry.value);
-    const side = sc.origin.side;
-    if (locs.includes('side:' + side)) items.push({ status: 'pass', msg: `You located the fire on side ${SIDE_NAME[side]}.` });
-    else items.push({ status: 'warn', msg: `The fire is on side ${SIDE_NAME[side]}. Report it in your 360 update.` });
-    if (locs.includes('floor:' + sc.origin.fl)) items.push({ status: 'pass', msg: `You named ${floorWord(sc.origin.fl)}.` });
-    else items.push({ status: 'warn', msg: `The seat of the fire is on ${floorWord(sc.origin.fl)}.` });
-    for (const h of b.hazards || []) {
-      const hz = HAZARDS[h.type] || HAZARDS.other;
-      const words = hz.words.concat(h.note ? normalize(h.note).split(' ').filter(w => w.length > 3) : []);
-      const hit = words.some(w => padded.includes(' ' + normalize(w) + ' '));
-      const where = h.side ? ` on side ${SIDE_NAME[h.side]}` : '';
-      items.push(hit ? { status: 'pass', msg: `You called out the ${hz.label.toLowerCase()}${where}.` } : { status: 'warn', msg: `You didn't mention the ${(h.note || hz.label).toLowerCase()}${where}.` });
-    }
-    return { items, tokens: tk.tokens, matches: tk.matches };
-  }
-
-  return { normalize, prepConfig, tokenize, openingsOf, makeScenario, alphaView, expected, grade, grade360, modelReport,
-    sizeClass, HAZARDS, SIDE_NAME, INV_LABEL, LINE_LABEL, OBJ_LABEL, CAT_LABEL, RANK, floorNum };
-})();
-if (typeof module !== 'undefined') module.exports = Engine;
-
-</script>
 <script>
 /* ===== Built-in sample buildings, drawn on canvas so the app works with no photos ===== */
 const Samples = (() => {
@@ -1139,6 +763,92 @@ const Samples = (() => {
     return c.toDataURL('image/jpeg', 0.86);
   }
 
+
+  /* --- approach views: a street 2-3 blocks out, drawn in perspective --- */
+  const APPROACH = {
+    'sample-maple': { kind: 'res', side: 1, z: 120, w: 14, h: 7.5, color: '#cbbfa8', roof: 'hip' },
+    'sample-riverside': { kind: 'res', side: -1, z: 130, w: 34, h: 10.5, color: '#94563f', roof: 'hip' },
+    'sample-oak': { kind: 'com', side: 1, z: 125, w: 46, h: 5.5, color: '#b9ad98', roof: 'flat' }
+  };
+  const VX = 600, VY = 372, K = 640, CAM = 1.5;
+  const sx = (X, z) => VX + X / z * K, sy = (Y, z) => VY + (CAM - Y) / z * K;
+  function facade(ctx, X, z0, z1, h, col, roofType, roofH) {
+    // the face of a building that runs along the street at lateral offset X, from depth z0 to z1
+    const p = [[sx(X, z0), sy(0, z0)], [sx(X, z1), sy(0, z1)], [sx(X, z1), sy(h, z1)], [sx(X, z0), sy(h, z0)]];
+    ctx.fillStyle = col; ctx.beginPath(); p.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.fill();
+    const top = roofType === 'flat' ? h + 0.8 : h + roofH;
+    if (roofType === 'flat') {
+      ctx.fillStyle = '#6c645a'; ctx.beginPath(); ctx.moveTo(sx(X, z0), sy(h, z0)); ctx.lineTo(sx(X, z1), sy(h, z1)); ctx.lineTo(sx(X, z1), sy(top, z1)); ctx.lineTo(sx(X, z0), sy(top, z0)); ctx.closePath(); ctx.fill();
+    } else {
+      ctx.fillStyle = '#474c55'; ctx.beginPath(); ctx.moveTo(sx(X, z0), sy(h, z0)); ctx.lineTo(sx(X, z1), sy(h, z1));
+      ctx.lineTo(sx(X * 1.08, (z0 + z1) / 2 + (z1 - z0) * 0.22), sy(top, (z0 + z1) / 2)); ctx.lineTo(sx(X * 1.08, (z0 + z1) / 2 - (z1 - z0) * 0.22), sy(top, (z0 + z1) / 2)); ctx.closePath(); ctx.fill();
+    }
+    // windows
+    const rows = Math.max(1, Math.round(h / 3)), cols = Math.max(1, Math.round((z1 - z0) / 4));
+    ctx.fillStyle = 'rgba(60,80,95,.75)';
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const za = z0 + (c + 0.3) * (z1 - z0) / cols, zb = z0 + (c + 0.7) * (z1 - z0) / cols, ya = r * 3 + 1, yb = r * 3 + 2.2;
+      ctx.beginPath(); ctx.moveTo(sx(X, za), sy(ya, za)); ctx.lineTo(sx(X, zb), sy(ya, zb)); ctx.lineTo(sx(X, zb), sy(yb, zb)); ctx.lineTo(sx(X, za), sy(yb, za)); ctx.fill();
+    }
+    return { x: sx(X, (z0 + z1) / 2), y: sy(top, (z0 + z1) / 2) };
+  }
+  function streetTree(ctx, X, z) {
+    const x = sx(X, z), yb = sy(0, z), s = K / z;
+    ctx.fillStyle = '#5b4632'; ctx.fillRect(x - 0.18 * s, yb - 3 * s, 0.36 * s, 3 * s);
+    ctx.fillStyle = '#3f5f34'; ctx.beginPath(); ctx.arc(x, yb - 4.4 * s, 2.2 * s, 0, 7); ctx.fill();
+    ctx.fillStyle = '#4d6e3c'; ctx.beginPath(); ctx.arc(x - 0.9 * s, yb - 3.8 * s, 1.5 * s, 0, 7); ctx.fill();
+  }
+  function renderApproach(id) {
+    const a = APPROACH[id];
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    rect(ctx, 0, 0, W, VY + 4, lin(ctx, 0, 0, 0, VY, [[0, '#7f9ab3'], [0.7, '#bccbd7'], [1, '#e1e7eb']]));
+    ctx.fillStyle = 'rgba(70,90,80,.35)';
+    for (let x = 0; x < W; x += 34) { const hh = 10 + 14 * Math.abs(Math.sin(x * 0.013)); ctx.beginPath(); ctx.ellipse(x, VY + 2, 30, hh, 0, Math.PI, 0); ctx.fill(); }
+    rect(ctx, 0, VY, W, H - VY, a.kind === 'com' ? '#7d8084' : '#6f8a4f');
+    // road and sidewalks
+    const road = (X0, X1, col) => { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(sx(X0, 1.6), sy(0, 1.6)); ctx.lineTo(sx(X1, 1.6), sy(0, 1.6)); ctx.lineTo(sx(X1, 600), sy(0, 600)); ctx.lineTo(sx(X0, 600), sy(0, 600)); ctx.fill(); };
+    road(-9.5, 9.5, '#c9c5bb'); road(-6.5, 6.5, '#55595e');
+    ctx.fillStyle = 'rgba(240,215,120,.85)';
+    for (let z = 4; z < 400; z *= 1.32) { ctx.beginPath(); ctx.moveTo(sx(-0.12, z), sy(0, z)); ctx.lineTo(sx(0.12, z), sy(0, z)); ctx.lineTo(sx(0.12, z * 1.12), sy(0, z * 1.12)); ctx.lineTo(sx(-0.12, z * 1.12), sy(0, z * 1.12)); ctx.fill(); }
+    // cross streets
+    [60, 105].forEach(z => { ctx.fillStyle = '#55595e'; ctx.beginPath(); ctx.moveTo(0, sy(0, z)); ctx.lineTo(W, sy(0, z)); ctx.lineTo(W, sy(0, z + 9)); ctx.lineTo(0, sy(0, z + 9)); ctx.fill(); });
+    // buildings far to near so near ones overlap
+    const lots = [];
+    for (const side of [-1, 1]) for (let z = 12; z < 230; z += a.kind === 'com' ? 22 : 15) {
+      if ((z > 56 && z < 72) || (z > 101 && z < 117)) continue;
+      lots.push({ side, z });
+    }
+    let target = null;
+    const targetZ0 = a.z, targetZ1 = a.z + Math.max(10, a.w * 0.6);
+    lots.sort((p, q) => q.z - p.z);
+    const cols = a.kind === 'com' ? ['#b0a490', '#9c8f7b', '#c3b8a5'] : ['#d6cdb9', '#b8c0c4', '#c9b79c', '#a9b39a', '#d2c4b0'];
+    let drewTarget = false;
+    for (const l of lots) {
+      if (!drewTarget && l.z <= targetZ1 && l.side === a.side) {
+        target = facade(ctx, a.side * 15, targetZ0, targetZ1, a.h, a.color, a.roof, a.h * 0.35);
+        drewTarget = true;
+      }
+      if (l.side === a.side && l.z + 12 > targetZ0 && l.z < targetZ1 + 2) continue;
+      const h = a.kind === 'com' ? 5 + (l.z % 3) : 5.5 + (l.z % 2) * 2.5;
+      facade(ctx, l.side * 15, l.z, l.z + (a.kind === 'com' ? 18 : 10), h, cols[Math.floor(l.z) % cols.length], a.kind === 'com' ? 'flat' : 'hip', 2.4);
+      if (a.kind !== 'com' && l.z % 30 < 15) streetTree(ctx, l.side * 10.5, l.z + 5);
+    }
+    if (!drewTarget) target = facade(ctx, a.side * 15, targetZ0, targetZ1, a.h, a.color, a.roof, a.h * 0.35);
+    // power poles
+    ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 1.5;
+    let prev = null;
+    for (let z = 8; z < 260; z += 26) {
+      const x = sx(-11, z), yb = sy(0, z), yt = sy(10, z);
+      ctx.fillStyle = '#5e4b3a'; ctx.fillRect(x - Math.max(1, 0.15 * K / z), yt, Math.max(2, 0.3 * K / z), yb - yt);
+      if (prev) { ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.quadraticCurveTo((prev[0] + x) / 2, (prev[1] + yt) / 2 + 6, x, yt); ctx.stroke(); }
+      prev = [x, yt];
+    }
+    if (a.kind === 'com') { car(ctx, 140, '#6d1f24'); }
+    return { src: c.toDataURL('image/jpeg', 0.86), x: target.x / W, y: target.y / H };
+  }
+  const apCache = {};
   const cache = {};
   function building(b) {
     const out = { ...b, sides: {} };
@@ -1147,6 +857,10 @@ const Samples = (() => {
       const o = openingsFor(b.specs[s], s);
       const key = b.id + s;
       out.sides[s] = { openings: o.openings, wall: o.wall, get src() { return cache[key] || (cache[key] = render(b.specs[s])); } };
+    }
+    if (APPROACH[b.id]) {
+      const id = b.id, A = () => apCache[id] || (apCache[id] = renderApproach(id));
+      out.approach = { get src() { return A().src; }, get x() { return A().x; }, get y() { return A().y; } };
     }
     return out;
   }
@@ -1187,9 +901,9 @@ const FX = (() => {
       this.loop = this.loop.bind(this);
       document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); else if (this.em.length) this.play(); });
     }
-    show({ src, openings, cond, roofIntensity = {}, victimId = null, wind = 0, labels = false }) {
+    show({ src, openings = [], cond = {}, roofIntensity = {}, victimId = null, wind = 0, labels = false, plume = null }) {
       this.stop(); this.parts = [];
-      this.data = { openings, cond, roofIntensity, victimId, wind, labels };
+      this.data = { openings, cond, roofIntensity, victimId, wind, labels, plume };
       const go = () => { this.fit(); this.build(); this.start(); };
       if (this.img.getAttribute('src') === src && this.img.complete && this.img.naturalWidth) go();
       else { this.img.onload = go; this.img.src = src; }
@@ -1208,6 +922,7 @@ const FX = (() => {
         o, kind: d.cond[o.id], roof: o.type === 'roof', intensity: o.type === 'roof' ? (d.roofIntensity[o.id] ?? 0.8) : 1,
         x: o.x * this.w, y: o.y * this.h, bw: o.w * this.w, bh: o.h * this.h, acc: Math.random(), seed: Math.random() * 100
       }));
+      if (d.plume && d.plume.level) this.em.push({ plume: true, level: d.plume.level, x: d.plume.x * this.w, y: d.plume.y * this.h, acc: 0, facc: 0, seed: Math.random() * 100 });
       if (!keep) this.parts = [];
     }
     spawn(e, dt) {
@@ -1223,6 +938,23 @@ const FX = (() => {
       };
       const wScale = Math.max(0.6, Math.min(3, e.bw / (90 * k)));
       const I = e.intensity;
+      if (e.plume) {
+        // A smoke column seen from 2-3 blocks away: thin and pale for smoke only, thick and black for a working fire.
+        const L = e.level, wide = [0, 0.6, 0.9, 1.25, 1.7][L];
+        const spr = L === 1 ? sprites().light : L === 2 ? sprites().grey : sprites().black;
+        e.acc += [0, 9, 15, 24, 34][L] * dt;
+        while (e.acc >= 1) {
+          e.acc -= 1;
+          const s0 = rnd(8, 16) * k * wide;
+          push({ spr: L >= 3 && Math.random() < 0.3 ? sprites().grey : spr, smoke: true, lin: s0 * rnd(0.9, 1.4), x: e.x + rnd(-6, 6) * k * wide, y: e.y + rnd(-2, 4) * k,
+            vx: wind * 26 * k + rnd(-4, 4) * k, vy: -rnd(26, 44) * k * (0.8 + L * 0.15), life: rnd(6, 9), age: 0, s: s0, grow: 0, a: [0, 0.42, 0.52, 0.62, 0.72][L], seed: Math.random() * 6 });
+        }
+        if (L === 4) {
+          e.facc += 30 * dt;
+          while (e.facc >= 1) { e.facc -= 1; push({ spr: sprites().flame, flame: true, tall: true, x: e.x + rnd(-8, 8) * k, y: e.y + rnd(0, 6) * k, vx: wind * 10 * k, vy: -rnd(20, 40) * k, life: rnd(0.4, 0.8), age: 0, s: rnd(10, 20) * k, grow: -0.6, a: 0.55, seed: 0 }); }
+        }
+        return;
+      }
       if (e.roof) {
         if (e.kind === 'smokeLight') smoke(sprites().light, 7 * wScale * I, e.y + e.bh * 0.3, e.y + e.bh, [18, 34], [4, 6.5], [60, 110], 0.34 * I, 0.08);
         else if (e.kind === 'smokeHeavy') smoke(sprites().grey, 10 * wScale * I, e.y, e.y + e.bh, [30, 60], [4, 6.5], [70, 130], 0.38 * I, 0.06);
@@ -1252,7 +984,7 @@ const FX = (() => {
       const k = this.k;
       for (const p of this.parts) {
         p.age += dt;
-        if (p.smoke) { p.vx += Math.sin(this.t * 1.6 + p.seed) * 10 * k * dt + this.data.wind * 12 * k * dt; p.vy *= (1 - 0.12 * dt); p.s += p.s * p.grow * 0.45 * dt; }
+        if (p.smoke) { p.vx += Math.sin(this.t * 1.6 + p.seed) * 10 * k * dt + this.data.wind * 12 * k * dt; p.vy *= (1 - 0.12 * dt); if (p.lin) p.s += p.lin * dt; else p.s += p.s * p.grow * 0.45 * dt; }
         else p.s = Math.max(1, p.s + p.s * p.grow * dt);
         p.x += p.vx * dt; p.y += p.vy * dt;
       }
@@ -1261,6 +993,15 @@ const FX = (() => {
     drawFills() {
       const c = this.ctx, d = this.data;
       for (const e of this.em) {
+        if (e.plume) {
+          if (e.level >= 3) {
+            const f = 0.8 + 0.2 * Math.sin(this.t * 9 + e.seed), r = (e.level === 4 ? 60 : 30) * this.k;
+            c.save(); c.globalCompositeOperation = 'lighter';
+            const g = c.createRadialGradient(e.x, e.y, 0, e.x, e.y, r); g.addColorStop(0, `rgba(255,130,40,${(e.level === 4 ? 0.45 : 0.18) * f})`); g.addColorStop(1, 'rgba(255,120,30,0)');
+            c.fillStyle = g; c.fillRect(e.x - r, e.y - r, 2 * r, 2 * r); c.restore();
+          }
+          continue;
+        }
         if (e.roof) continue;
         const { x, y, bw, bh } = e;
         if (e.kind === 'fire') {
@@ -1321,7 +1062,7 @@ const FX = (() => {
     still() { this.parts = []; for (let i = 0; i < 120; i++) this.step(1 / 30); this.draw(); }
     start() {
       if (!this.w) return;
-      for (let i = 0; i < 60; i++) this.step(1 / 30);
+      for (let i = 0, n = this.data && this.data.plume ? 270 : 60; i < n; i++) this.step(1 / 30);
       if (this.reduced) { this.draw(); return; }
       this.play();
     }
@@ -1334,7 +1075,7 @@ const FX = (() => {
 
 </script>
 <script>
-/* ===== App: screens, speech, storage, Sheets connection, admin photo tagging ===== */
+/* ===== App: screens, speech, storage, server calls, admin photo tagging. No grading happens here. ===== */
 (() => {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -1344,15 +1085,23 @@ const FX = (() => {
     set(k, v) { try { localStorage.setItem('sus.' + k, JSON.stringify(v)); return true; } catch { return false; } },
     del(k) { try { localStorage.removeItem('sus.' + k); } catch { } }
   };
-  const DEFAULTS = JSON.parse($('#defaults').textContent);
   const CONF = window.SIZEUP_CONFIG || {};
   const SIDES = ['A', 'B', 'C', 'D'];
   const PUBLIC_MAIL = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'aol.com', 'live.com', 'me.com', 'proton.me', 'protonmail.com'];
 
-  const S = { session: null, cfg: Engine.prepConfig(DEFAULTS), buildings: [], b: null, sc: null, result: null, r360: null, seen: new Set(), side: 'A', t0: 0, tReport: 0, did360: false };
+  const SIDE_NAME = { A: 'Alpha', B: 'Bravo', C: 'Charlie', D: 'Delta' };
+  const CAT_LABEL = { residential: 'single family residential', multifamily: 'multi-family residential', commercial: 'commercial', industrial: 'industrial', mixed: 'mixed use' };
+  const HAZARD_LABEL = { basement: 'Basement', propane: 'Propane tank', pool: 'Pool', powerlines: 'Overhead power lines', truss: 'Lightweight truss roof',
+    cockloft: 'Common cockloft / attic', hvac: 'Rooftop HVAC units', bars: 'Security bars', gasmeter: 'Gas meters', solar: 'Solar panels',
+    hazmat: 'Hazardous materials', battery: 'EV / battery storage', other: 'Other hazard' };
+  const TYPE_LABEL = { engine: 'Engine', truck: 'Truck', aid: 'Aid car', medic: 'Medic', battalion: 'Battalion', tender: 'Tender', isu: 'ISU', chief: 'Chief' };
+  const LEVEL_LABEL = { balance: 'balance', '2': '2nd alarm', '3': '3rd alarm', '4': '4th alarm' };
+  const S = { session: null, order: [], buildings: [], apparatus: [], dispatchName: 'Dispatch', units: [], b: null, sc: null, out: null, seen: new Set(), side: 'A', t0: 0, tReport: 0, did360: false };
   const scenes = {};
   const scene = id => scenes[id] || (scenes[id] = new FX.Scene($('#' + id)));
-  const settings = () => ({ unit: store.get('unit', 'Engine 1') || 'Engine 1', aids: store.get('aids', 'on'), voice: store.get('voice', 'on') });
+  const defaultUnit = () => { const e = (S.apparatus || []).find(a => a.type === 'engine'); return e ? e.name : 'Engine 1'; };
+  const settings = () => ({ unit: store.get('unit', '') || defaultUnit(), aids: store.get('aids', 'on'), voice: store.get('voice', 'on'),
+    delays: store.get('delays', 'off'), dispErr: store.get('dispErr', 'on') });
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2600); }
 
@@ -1369,9 +1118,15 @@ const FX = (() => {
       return j;
     }
   };
+  const Local = () => !Api.url() && window.LocalServer;
+  const Server = {
+    available() { return !!(Api.url() || window.LocalServer); },
+    call(action, data) { return Local() ? window.LocalServer.call(action, data, S.buildings) : Api.call(action, data); }
+  };
   const imgCache = {};
   async function srcOf(b, side) {
-    const sd = b.sides[side];
+    const sd = side === 'E' ? b.approach : b.sides[side];
+    if (!sd) return '';
     if (sd.src) return sd.src;
     if (!b.remote || !sd.fileId) return '';
     imgCache[sd.fileId] = imgCache[sd.fileId] || Api.call('image', { id: sd.fileId }).then(j => j.dataUrl);
@@ -1382,7 +1137,8 @@ const FX = (() => {
     const ops = b.openings || [];
     const sides = {};
     for (const s of SIDES) sides[s] = { src: '', fileId: b.photos && b.photos[s], openings: ops.filter(o => o.side === s).map(o => ({ id: o.id, type: o.type, fl: String(o.fl), x: +o.x, y: +o.y, w: +o.w, h: +o.h })) };
-    return { ...b, sqft: +b.sqft, stories: +b.stories, planW: +b.planW || 40, planD: +b.planD || 40, typeCategories: [b.category].concat(b.category === 'multifamily' ? ['residential'] : []), sides, remote: true };
+    const approach = b.photos && b.photos.E && b.approach ? { src: '', fileId: b.photos.E, x: +b.approach.x, y: +b.approach.y } : null;
+    return { ...b, sqft: +b.sqft, stories: +b.stories, planW: +b.planW || 40, planD: +b.planD || 40, typeCategories: [b.category].concat(b.category === 'multifamily' ? ['residential'] : []), sides, approach, remote: true };
   }
 
   /* ---------- sign in ---------- */
@@ -1398,7 +1154,8 @@ const FX = (() => {
   };
   function demoSignIn(email) {
     S.session = { email, dept: demoDept(email), role: 'admin', mode: 'demo' };
-    S.cfg = Engine.prepConfig(DEFAULTS);
+    S.order = window.LocalServer.order();
+    S.apparatus = window.LocalServer.apparatus(); S.dispatchName = 'Dispatch';
     const custom = store.get('custom', []).filter(b => b.dept === S.session.dept.id || b.dept === 'ANY');
     S.buildings = [...Samples.list(), ...custom];
     store.set('session', { email });
@@ -1406,7 +1163,8 @@ const FX = (() => {
   async function loadAgency() {
     const j = await Api.call('config');
     S.session = { email: j.email, dept: j.department, role: j.role || 'member', mode: 'sheets' };
-    S.cfg = Engine.prepConfig({ order: j.order?.length ? j.order : DEFAULTS.order, terms: j.terms?.length ? j.terms : DEFAULTS.terms, rules: j.rules?.length ? j.rules : DEFAULTS.rules });
+    S.order = j.order || [];
+    S.apparatus = j.apparatus || []; S.dispatchName = (j.department && j.department.dispatch) || 'Dispatch';
     S.buildings = [...Samples.list(), ...(j.buildings || []).map(fromRemote)];
     store.set('session', { email: j.email });
   }
@@ -1416,8 +1174,9 @@ const FX = (() => {
   function go(name) {
     $$('section[data-screen]').forEach(s => s.hidden = s.dataset.screen !== name);
     $('#bar').hidden = name === 'login';
-    $$('.bar nav button').forEach(b => b.setAttribute('aria-current', b.dataset.nav === name || (b.dataset.nav === 'home' && ['dispatch', 'scene', 'walk', 'debrief'].includes(name)) ? 'page' : 'false'));
+    $$('.bar nav button').forEach(b => b.setAttribute('aria-current', b.dataset.nav === name || (b.dataset.nav === 'home' && ['dispatch', 'approach', 'scene', 'walk', 'debrief'].includes(name)) ? 'page' : 'false'));
     if (name !== 'scene') Speech.stop();
+    if (name !== 'approach') clearInterval(respond.h);
     for (const k in scenes) if (!$('#' + k).closest('section').hidden) scenes[k].play(); else scenes[k].pause();
     window.scrollTo(0, 0);
     if (name === 'home') renderHome();
@@ -1426,7 +1185,7 @@ const FX = (() => {
   }
 
   /* ---------- home ---------- */
-  const catName = c => Engine.CAT_LABEL[c] || c;
+  const catName = c => CAT_LABEL[c] || c;
   function renderHome() {
     const s = S.session;
     $('#deptLabel').textContent = `${s.dept.name} · ${s.email}`;
@@ -1434,13 +1193,13 @@ const FX = (() => {
     $('#navAdmin').hidden = s.role !== 'admin';
     $('#libCount').textContent = `${S.buildings.length} buildings`;
     $('#lib').innerHTML = S.buildings.map((b, i) => `
-      <article class="bcard">
+      <article class="bldg">
         <div class="thumb"><img alt="${esc(b.name)}, side Alpha" data-thumb="${i}"></div>
         <div class="body">
           <h3>${esc(b.name)}</h3>
           <div class="facts"><span class="tag">${b.sqft.toLocaleString('en-US')} sq ft</span><span class="tag">${b.stories} story</span><span class="tag">${esc(catName(b.category))}</span>
-            ${(b.hazards || []).slice(0, 3).map(h => `<span class="tag hz">${esc((Engine.HAZARDS[h.type] || Engine.HAZARDS.other).label)}</span>`).join('')}</div>
-          <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:.85rem">${b.sample ? 'Built-in sample' : b.dept === 'ANY' ? 'Shared library' : 'Your department'}</span>
+            ${(b.hazards || []).slice(0, 3).map(h => `<span class="tag hz">${esc(HAZARD_LABEL[h.type] || HAZARD_LABEL.other)}</span>`).join('')}</div>
+          <div class="row" style="justify-content:space-between"><span class="muted" style="font-size:.85rem">${b.sample ? 'Built-in sample' : b.dept === 'ANY' ? 'Shared library' : 'Your agency'}</span>
             <button class="btn small" type="button" data-run="${i}">Run</button></div>
         </div></article>`).join('');
     $$('[data-thumb]').forEach(img => { const b = S.buildings[+img.dataset.thumb]; srcOf(b, 'A').then(src => { if (src) img.src = src; }).catch(() => { }); });
@@ -1448,71 +1207,161 @@ const FX = (() => {
     $('#histEmpty').hidden = hist.length > 0; $('#histTable').hidden = !hist.length;
     $('#histTable tbody').innerHTML = hist.map(h => `<tr><td>${esc(new Date(h.ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td><td>${esc(h.building)}</td><td>${esc(h.inv)}</td><td><strong>${h.score}</strong></td></tr>`).join('');
   }
-  /* ---------- scenario flow ---------- */
-  function start(b) {
-    S.b = b; S.sc = Engine.makeScenario(b, { unit: settings().unit }); S.result = null; S.r360 = null; S.seen = new Set(['A']); S.did360 = false;
-    $('#dispText').textContent = S.sc.dispatch;
+  /* ---------- scenario flow: tone out, respond, approach, arrive ---------- */
+  const Tones = (() => {
+    let ctx = null;
+    return {
+      prime() { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch { ctx = null; } },
+      play() {
+        return new Promise(res => {
+          if (!ctx) return res();
+          try {
+            const t = ctx.currentTime + 0.05, g = ctx.createGain(), o = ctx.createOscillator();
+            o.type = 'sine'; o.connect(g); g.connect(ctx.destination);
+            o.frequency.setValueAtTime(853, t); o.frequency.setValueAtTime(960, t + 1);
+            g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.16, t + 0.03); g.gain.setValueAtTime(0.16, t + 2.6); g.gain.linearRampToValueAtTime(0, t + 2.7);
+            o.start(t); o.stop(t + 2.75); o.onended = () => res(); setTimeout(res, 3300);
+          } catch { res(); }
+        });
+      }
+    };
+  })();
+  async function start(b, test) {
+    S.b = b; S.sc = null; S.out = null; S.seen = new Set(['A']); S.did360 = false; S.units = []; S.t0 = 0; S.readback = '';
+    Tones.prime();
+    $('#dispText').textContent = 'Dispatching…';
+    $('#respondBtn').disabled = true; $('#replayBtn').disabled = true;
+    $('#dispName').textContent = S.dispatchName;
     $('#dispTime').textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    $('#report').value = ''; $('#report360').value = ''; $('#micNote').hidden = true;
+    $('#unitsTone').innerHTML = '';
+    $('#report').value = ''; $('#report360').value = ''; $('#corrText').value = ''; $('#micNote').hidden = true;
     go('dispatch');
-    if (settings().voice === 'on') say(S.sc.dispatch);
+    try {
+      const st = settings();
+      S.sc = await Server.call('startScenario', { buildingId: b.id, unit: st.unit, delays: st.delays === 'on', dispatchErrors: st.dispErr === 'on', test });
+      S.units = S.sc.units || [];
+      $('#dispText').textContent = S.sc.dispatch;
+      renderUnits($('#unitsTone'), false);
+      $('#respondBtn').disabled = false; $('#replayBtn').disabled = false;
+      $('#respondBtn').focus();
+      await Tones.play();
+      if (settings().voice === 'on' && !$('section[data-screen=dispatch]').hidden) say(S.sc.dispatch);
+    } catch (e) {
+      if (e.code === 'auth') return expired();
+      $('#dispText').textContent = "Couldn't start this call. " + e.message;
+    }
+  }
+  async function respond() {
+    try { speechSynthesis.cancel(); } catch { }
+    const ap = S.b.approach;
+    if (!ap) return arrive();
+    go('approach');
+    try {
+      const src = await srcOf(S.b, 'E');
+      if (!src) return arrive();
+      scene('sceneApproach').show({ src, plume: { x: ap.x, y: ap.y, level: S.sc.plume }, wind: S.sc.wind });
+    } catch { return arrive(); }
+    let n = 6; $('#countdown').textContent = 'On scene in ' + n;
+    clearInterval(respond.h);
+    respond.h = setInterval(() => {
+      n--;
+      if (n > 0) { $('#countdown').textContent = 'On scene in ' + n; return; }
+      clearInterval(respond.h);
+      if (!$('section[data-screen=approach]').hidden) arrive();
+    }, 1000);
   }
   function say(text) {
     try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.02; speechSynthesis.speak(u); } catch { }
   }
   function sceneData(side) {
     const sd = S.b.sides[side];
-    return { src: sd.src, openings: sd.openings, cond: S.sc.cond, roofIntensity: S.sc.roofIntensity, victimId: S.sc.victim ? S.sc.victim.openingId : null, wind: S.sc.wind };
+    return { src: sd.src, openings: sd.openings, cond: S.sc.cond, roofIntensity: S.sc.roofIntensity, victimId: S.sc.victimId, wind: S.sc.wind };
   }
   async function showScene(id, side) {
     const sc = scene(id);
     try { const src = await srcOf(S.b, side); sc.show({ ...sceneData(side), src }); }
-    catch (e) { toast("Couldn't load the photo of side " + Engine.SIDE_NAME[side] + '. ' + e.message); }
+    catch (e) { toast("Couldn't load the photo of side " + SIDE_NAME[side] + '. ' + e.message); }
   }
   function arrive() {
     try { speechSynthesis.cancel(); } catch { }
+    clearInterval(respond.h);
     go('scene');
     $('#sceneAddr').textContent = S.b.address;
     showScene('sceneMain', 'A');
     buildOrderStrip();
     S.t0 = Date.now(); tick();
+    renderUnits($('#unitsScene'), true);
   }
   function tick() {
     clearInterval(tick.h);
-    tick.h = setInterval(() => { const s = Math.floor((Date.now() - S.t0) / 1000); const t = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; $('#clock').textContent = t; $('#clock2').textContent = t; }, 500);
+    tick.h = setInterval(() => { const s = Math.floor((Date.now() - S.t0) / 1000); const t = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; $('#clock').textContent = t; $('#clock2').textContent = t; if (s !== tick.last) { tick.last = s; renderUnits($('#unitsScene'), true); } }, 500);
   }
   function buildOrderStrip() {
     const on = settings().aids === 'on';
     $('#orderStrip').hidden = !on;
-    $('#orderStrip').innerHTML = S.cfg.order.filter(o => o.required !== 'no' || o.section === 'alarms').map(o => `<li data-sec="${esc(o.section)}" class="${o.checkOrder === 'N' ? 'opt' : ''}" title="${esc(o.hint)}">${esc(o.label)}</li>`).join('');
-    liveHits();
+    $('#orderStrip').innerHTML = S.order.filter(o => o.required !== 'no' || o.section === 'alarms').map(o => `<li class="${o.checkOrder === 'N' ? 'opt' : ''}" title="${esc(o.hint)}">${esc(o.label)}</li>`).join('');
   }
-  function liveHits() {
-    if (settings().aids !== 'on') return;
-    const found = new Set(Engine.tokenize($('#report').value, S.cfg).matches.map(m => m.section));
-    $$('#orderStrip li').forEach(li => li.classList.toggle('hit', found.has(li.dataset.sec)));
+  function renderUnits(el, live) {
+    const sec = live && S.t0 ? (Date.now() - S.t0) / 1000 : 0;
+    el.innerHTML = S.units.slice().sort((x, y) => (y.mine ? 1 : 0) - (x.mine ? 1 : 0) || x.eta - y.eta).map(u => {
+      const cls = [];
+      let eta;
+      if (u.mine) { eta = live ? 'On scene' : 'You'; cls.push('mine'); }
+      else if (live) { const rem = u.eta * 60 - sec; if (rem <= 0) { eta = 'On scene'; cls.push('here'); } else eta = Math.ceil(rem / 60) + ' min'; }
+      else eta = '+' + u.eta + ' min';
+      if (u.delay) cls.push('late');
+      if (u.level && u.level !== 'initial') cls.push('new');
+      const meta = [TYPE_LABEL[u.type] || u.type, u.staff ? u.staff + ' staffed' : '', u.delay ? 'delayed ' + u.delay + ' min' : '', u.level && u.level !== 'initial' ? LEVEL_LABEL[u.level] : ''].filter(Boolean).join(' · ');
+      return `<div class="u ${cls.join(' ')}"><span><strong>${esc(u.name)}</strong> <span class="st">${esc(meta)}</span></span><span class="eta">${esc(eta)}</span></div>`;
+    }).join('') || '<span class="muted">No units listed.</span>';
   }
-  function submitReport() {
+  async function submitReport() {
     const text = $('#report').value.trim();
     if (!text) { toast('Give your report first: tap the mic or type it.'); return; }
     Speech.stop();
     S.tReport = Math.round((Date.now() - S.t0) / 1000);
-    S.result = Engine.grade(S.b, S.sc, text, S.cfg, settings().unit);
     S.reportText = text;
+    const btn = $('#submitBtn'); btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const r = await Server.call('readback', { scenarioId: S.sc.scenarioId, report: text, seconds: S.tReport });
+      S.units = r.units || S.units; S.readback = r.text;
+    } catch (e) {
+      if (e.code === 'auth') return expired();
+      toast("Dispatch didn't get your report. " + e.message); return;
+    } finally { btn.disabled = false; btn.textContent = 'Submit report'; }
+    renderUnits($('#unitsScene'), true);
     $('#askTime').textContent = `${Math.floor(S.tReport / 60)}:${String(S.tReport % 60).padStart(2, '0')} after arrival`;
+    $('#rbFrom').textContent = S.dispatchName;
+    $('#rbText').textContent = S.readback;
+    showChoice();
     $('#ask360').hidden = false; $('#do360').focus();
+    if (settings().voice === 'on') say(S.readback);
+  }
+  function showChoice() { $('#askChoice').hidden = false; $('#corrBox').hidden = true; }
+  async function sendCorrection() {
+    const t = $('#corrText').value.trim();
+    if (!t) { toast('Say or type your correction first.'); return; }
+    Speech.stop();
+    const btn = $('#sendCorr'); btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      const r = await Server.call('correct', { scenarioId: S.sc.scenarioId, text: t });
+      $('#rbText').textContent = r.reply;
+      if (settings().voice === 'on') say(r.reply);
+      showChoice();
+    } catch (e) { if (e.code === 'auth') return expired(); toast("Dispatch didn't get your correction. " + e.message); }
+    finally { btn.disabled = false; btn.textContent = 'Send correction'; }
   }
 
   /* ---------- 360 ---------- */
   const SIDE_TXT = { A: 'Front, the address side', B: 'Left side from the front', C: 'Rear', D: 'Right side from the front' };
   function walk(side) {
     S.side = side; S.seen.add(side);
-    $('#walkBadge').textContent = `Side ${Engine.SIDE_NAME[side]}`;
-    $('#sceneWalk img').alt = `Side ${Engine.SIDE_NAME[side]} of the building`;
+    $('#walkBadge').textContent = `Side ${SIDE_NAME[side]}`;
+    $('#sceneWalk img').alt = `Side ${SIDE_NAME[side]} of the building`;
     showScene('sceneWalk', side);
-    $('#sideBtns').innerHTML = SIDES.map(s => `<button type="button" data-side="${s}" aria-pressed="${s === side}" class="${S.seen.has(s) ? 'seen' : ''}">${Engine.SIDE_NAME[s]}<small>${s === side ? 'here' : S.seen.has(s) ? 'seen' : SIDE_TXT[s].split(',')[0]}</small></button>`).join('');
+    $('#sideBtns').innerHTML = SIDES.map(s => `<button type="button" data-side="${s}" aria-pressed="${s === side}" class="${S.seen.has(s) ? 'seen' : ''}">${SIDE_NAME[s]}<small>${s === side ? 'here' : S.seen.has(s) ? 'seen' : SIDE_TXT[s].split(',')[0]}</small></button>`).join('');
     const nx = SIDES[(SIDES.indexOf(side) + 1) % 4];
-    $('#nextSideBtn').textContent = S.seen.size === 4 && side === 'D' ? 'Back to Alpha' : `Walk to ${Engine.SIDE_NAME[nx]}`;
+    $('#nextSideBtn').textContent = S.seen.size === 4 && side === 'D' ? 'Back to Alpha' : `Walk to ${SIDE_NAME[nx]}`;
     $('#nextSideBtn').dataset.to = nx;
     $('#plan').innerHTML = planSvg(side);
     $('#walkHint').textContent = S.seen.size === 4 ? '360 complete. Give your update, then finish.' : `${SIDE_TXT[side]}. Walk clockwise to see every side.`;
@@ -1523,7 +1372,7 @@ const FX = (() => {
     const pos = { A: [W / 2, y + pd + 22], B: [x - 20, y + pd / 2], C: [W / 2, y - 16], D: [x + pw + 20, y + pd / 2] };
     const lab = { A: [W / 2, y + pd - 8], B: [x + 12, y + pd / 2 + 5], C: [W / 2, y + 18], D: [x + pw - 12, y + pd / 2 + 5] };
     const [px, py] = pos[side];
-    return `<svg viewBox="0 0 ${W} ${H + 10}" role="img" aria-label="Plan view. You are on side ${Engine.SIDE_NAME[side]}.">
+    return `<svg viewBox="0 0 ${W} ${H + 10}" role="img" aria-label="Plan view. You are on side ${SIDE_NAME[side]}.">
       <rect x="${x}" y="${y}" width="${pw}" height="${pd}" fill="var(--chip)" stroke="var(--ink)" stroke-width="2" rx="2"/>
       ${SIDES.map(s => `<text x="${lab[s][0]}" y="${lab[s][1]}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="600" fill="${S.seen.has(s) ? 'var(--accent)' : 'var(--muted)'}">${s}</text>`).join('')}
       <path d="M ${x + pw + 6} ${y + pd + 10} A 70 70 0 0 0 ${x + pw + 6} ${y - 6}" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="3 3"/>
@@ -1532,28 +1381,33 @@ const FX = (() => {
   }
 
   /* ---------- debrief ---------- */
-  const AREA = { order: 'Order', terms: 'Approved terms', missing: 'Missing part', decision: 'Tactical call' };
+  const AREA = { order: 'Order', terms: 'Approved terms', missing: 'Missing part', decision: 'Tactical call', dispatch: 'Dispatch readback' };
   const ICON = { fail: '!', warn: '?', pass: '✓', info: 'i' };
-  function finish() {
+  async function finish() {
     Speech.stop();
-    const t360 = $('#report360').value.trim();
-    S.r360 = S.did360 && t360 ? Engine.grade360(S.b, S.sc, t360, S.cfg) : null;
-    renderDebrief();
     go('debrief');
-    logAttempt();
+    $('#debriefBody').hidden = true; $('#grading').hidden = false; $('#gradeErrRow').hidden = true;
+    try {
+      S.out = await Server.call('grade', { scenarioId: S.sc.scenarioId, report: S.reportText, report360: S.did360 ? $('#report360').value.trim() : '',
+        did360: S.did360, sides: [...S.seen].join(''), seconds: S.tReport });
+    } catch (e) {
+      if (e.code === 'auth') return expired();
+      $('#grading').hidden = true; $('#gradeErrRow').hidden = false; $('#gradeErr').textContent = "Couldn't grade this run. " + e.message; return;
+    }
+    $('#grading').hidden = true; $('#debriefBody').hidden = false;
+    renderDebrief(S.out);
+    saveHistory(S.out);
   }
-  function renderDebrief() {
-    const r = S.result, b = S.b, sc = S.sc;
-    const extra = [];
-    if (!S.did360) extra.push({ area: 'decision', status: 'warn', msg: 'You skipped the 360. Walk it whenever you can before committing crews inside.' });
-    else if (S.seen.size < 4) extra.push({ area: 'decision', status: 'warn', msg: `Your 360 missed side ${SIDES.filter(s => !S.seen.has(s)).map(s => Engine.SIDE_NAME[s]).join(' and ')}.` });
-    const all = r.items.concat(extra);
-    const score = Math.max(0, r.score - extra.filter(e => e.status === 'warn').length * 4);
+  function renderDebrief(r) {
+    const b = S.b;
+    const all = r.items;
+    const score = r.score;
     const n = $('#scoreNum'); n.innerHTML = `${score}<small>/100</small>`; n.className = 'num ' + (score >= 90 ? 'good' : score >= 70 ? 'mid' : 'low');
     $('#scoreHead').textContent = score >= 90 ? 'Ready for the radio' : score >= 70 ? 'Close. Tighten it up.' : 'Run it again';
-    const fails = all.filter(i => i.status === 'fail').length, warns = all.filter(i => i.status === 'warn').length;
+    const both = all.concat(r.items360 || []);
+    const fails = both.filter(i => i.status === 'fail').length, warns = both.filter(i => i.status === 'warn').length;
     $('#scoreSub').textContent = `${fails} to fix, ${warns} to improve. Report given ${Math.floor(S.tReport / 60)}:${String(S.tReport % 60).padStart(2, '0')} after arrival.`;
-    $('#scoreBldg').textContent = `${b.name} · ${Engine.INV_LABEL[sc.involvement]}`;
+    $('#scoreBldg').textContent = `${b.name} · ${r.invLabel}`;
     const li = i => `<li class="${i.status}"><span class="ic">${ICON[i.status]}</span><span>${i.area ? `<span class="area">${AREA[i.area] || ''}</span>` : ''}${esc(i.msg)}</span></li>`;
     const order = { fail: 0, warn: 1, info: 2 };
     const fix = all.filter(i => i.status !== 'pass').sort((a, b) => order[a.status] - order[b.status]);
@@ -1562,44 +1416,33 @@ const FX = (() => {
     $('#passList').innerHTML = pass.map(li).join(''); $('#passCount').textContent = pass.length;
     $('#heard').innerHTML = heardHtml(r.tokens, r.matches) || '<span class="muted">Nothing recognized.</span>';
     $('#modelText').textContent = r.model;
-    $('#r360Panel').hidden = !S.r360;
-    if (S.r360) $('#r360List').innerHTML = S.r360.items.map(li).join('');
-    const o = sc.origin;
-    const facts = [
-      ['Fire', Engine.INV_LABEL[sc.involvement]],
-      ['Seat of fire', `${o.fl === 'B' ? 'Basement' : 'Floor ' + o.fl}, side ${Engine.SIDE_NAME[o.side]} (${o.type})`],
-      ['Side Alpha showed', { full: 'Fully involved', fire: 'Fire showing', smoke: 'Smoke showing', nothing: 'Nothing showing' }[r.expected.alpha.cls] + (r.expected.alpha.floors.length ? ` on ${r.expected.alpha.floors.map(f => f === 'B' ? 'basement' : 'floor ' + f).join(', ')}` : '')],
-      ['Victim', sc.victim ? `At a floor ${sc.victim.fl} window, side Alpha` : sc.reported ? 'Reported inside, location unknown' : 'None reported'],
-      ['Building', `${b.sqft.toLocaleString('en-US')} sq ft · ${b.stories} story · ${catName(b.category)}${b.construction ? ' · ' + b.construction : ''}`],
-      ['Hazards', (b.hazards || []).map(h => (h.note || (Engine.HAZARDS[h.type] || Engine.HAZARDS.other).label) + (h.side ? ` (${h.side})` : '')).join(', ') || 'None listed'],
-      ['Expected', `${r.expected.strategy}, ${r.expected.line.accept.map(v => Engine.LINE_LABEL[v] || v).join(' or ')}${r.expected.alarm > 1 ? `, ${['', '', '2nd', '3rd', '4th'][r.expected.alarm]} alarm` : ''}`]
-    ];
-    $('#facts').innerHTML = facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
-    $('#debriefBadge').textContent = `Seat of fire · side ${Engine.SIDE_NAME[o.side]}`;
-    setTimeout(() => showScene('sceneDebrief', o.side), 30);
+    $('#model360Text').textContent = r.model360;
+    $('#r360Panel').hidden = !r.items360;
+    if (r.items360) {
+      $('#r360List').innerHTML = r.items360.map(li).join('');
+      $('#heard360').innerHTML = r.tokens360 && r.tokens360.length ? heardHtml(r.tokens360, r.matches360) : '<span class="muted">You didn\'t give a 360 update.</span>';
+    }
+    $('#facts').innerHTML = r.facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('');
+    $('#debriefBadge').textContent = `Seat of fire · side ${SIDE_NAME[r.seatSide]}`;
+    setTimeout(() => showScene('sceneDebrief', r.seatSide), 30);
   }
   function heardHtml(tokens, matches) {
-    const idx = Object.fromEntries(S.cfg.order.map((o, i) => [o.section, i + 1]));
+    const idx = Object.fromEntries(S.order.map((o, i) => [o.section, i + 1]));
     let out = [], i = 0, mi = 0;
     while (i < tokens.length) {
       const m = matches[mi];
       if (m && m.start === i) {
-        const cls = m.section === 'location' ? 'loc' : m.entry.approved === 'N' ? 'bad' : '';
-        const tag = m.section === 'location' ? '' : `<sup>${idx[m.section] || ''}</sup>`;
-        out.push(`<mark class="${cls}" title="${esc(m.entry.term)}">${esc(tokens.slice(m.start, m.end).join(' '))}${tag}</mark>`);
+        const numbered = idx[m.part] && m.part !== 'condloc';
+        const cls = m.approved === 'N' ? 'bad' : numbered ? '' : 'loc';
+        out.push(`<mark class="${cls}" title="${esc(m.term)}">${esc(tokens.slice(m.start, m.end).join(' '))}${numbered ? `<sup>${idx[m.part]}</sup>` : ''}</mark>`);
         i = m.end; mi++;
       } else { out.push(esc(tokens[i])); i++; }
     }
     return out.join(' ');
   }
-  async function logAttempt() {
-    const r = S.result;
-    const rec = { ts: Date.now(), email: S.session.email, dept: S.session.dept.id, buildingId: S.b.id, building: S.b.name, inv: S.sc.involvement,
-      origin: `${S.sc.origin.side}${S.sc.origin.fl}`, score: parseInt($('#scoreNum').textContent, 10) || r.score, transcript: S.reportText,
-      issues: r.items.filter(i => i.status !== 'pass').map(i => i.msg).join(' | '), did360: S.did360, sides: [...S.seen].join(''), seconds: S.tReport,
-      report360: $('#report360').value.trim() };
+  function saveHistory(r) {
+    const rec = { ts: Date.now(), email: S.session.email, building: S.b.name, inv: r.invLabel, score: r.score };
     const h = store.get('history', []); h.unshift(rec); store.set('history', h.slice(0, 60));
-    if (S.session.mode === 'sheets') { try { await Api.call('logAttempt', { attempt: rec }); } catch (e) { toast('Saved on this device. The Sheet log failed: ' + e.message); } }
   }
 
   /* ---------- speech-to-text ---------- */
@@ -1641,31 +1484,117 @@ const FX = (() => {
   /* ---------- settings ---------- */
   function renderSettings() {
     const st = settings();
-    $('#sUnit').value = st.unit; $('#sAids').value = st.aids; $('#sVoice').value = st.voice;
+    const names = S.apparatus.map(a => a.name);
+    if (names.indexOf(st.unit) < 0) names.unshift(st.unit);
+    $('#sUnit').innerHTML = names.map(n => { const a = S.apparatus.find(x => x.name === n); return `<option value="${esc(n)}">${esc(n)}${a ? ' · ' + esc(TYPE_LABEL[a.type] || a.type) : ''}</option>`; }).join('');
+    $('#sUnit').value = st.unit; $('#sAids').value = st.aids; $('#sVoice').value = st.voice; $('#sDelays').value = st.delays; $('#sDispErr').value = st.dispErr;
     $('#connMode').textContent = S.session.mode === 'sheets' ? `${S.session.dept.name}. You're signed in as ${S.session.email} (${S.session.role === 'admin' ? 'admin' : 'member'}). You see only your agency's buildings and the shared samples.` : 'Demo mode. Buildings you add stay on this device. Your training officer sets up the shared Google Sheet in config.js.';
-    $('#rulesOrder tbody').innerHTML = S.cfg.order.map(o => `<tr><td>${o.order}</td><td>${esc(o.label)}</td><td>${o.required === 'yes' ? 'Required' : o.required === 'warn' ? 'Recommended' : 'Optional'}</td><td>${esc(o.hint)}</td></tr>`).join('');
-    $('#rulesTerms tbody').innerHTML = S.cfg.terms.map(t => `<tr><td>${esc((S.cfg.order.find(o => o.section === t.section) || {}).label || t.section)}</td><td>${esc(t.term)}</td><td class="muted">${esc(String(t.variants || '').split('|').map(v => v.trim()).filter(Boolean).join(', '))}</td><td>${t.approved === 'Y' ? 'Yes' : '<strong style="color:var(--signal)">No</strong>'}</td></tr>`).join('');
+    $('#rulesOrder tbody').innerHTML = S.order.map((o, i) => `<tr><td>${i + 1}</td><td>${esc(o.label)}</td><td>${o.required === 'yes' ? 'Required' : o.required === 'warn' ? 'Recommended' : 'Optional'}</td><td>${esc(o.hint)}</td></tr>`).join('');
   }
 
   /* ---------- admin: building upload and opening tagging ---------- */
   const TYPES = [['window', 'Window', 'W'], ['door', 'Door', 'D'], ['garage', 'Garage door', 'G'], ['basement', 'Basement access', 'B'], ['roof', 'Roof / eaves', 'R']];
   const TYPE_COLOR = { window: '#4fa3ff', door: '#ffb347', garage: '#c58bff', basement: '#5fd38a', roof: '#ff6b6b' };
-  const A = { side: 'A', photos: {}, boxes: { A: [], B: [], C: [], D: [] }, type: 'window', fl: '1', sel: -1, draft: null };
+  const A = { side: 'A', photos: {}, boxes: { A: [], B: [], C: [], D: [] }, type: 'window', fl: '1', sel: -1, draft: null, point: null, gps: {}, addr: null };
+  const PHOTO_TABS = ['A', 'B', 'C', 'D', 'E'];
+  const tabName = s => s === 'E' ? 'Approach' : SIDE_NAME[s];
+
+  /* ---------- photo location: GPS in the photo, or the phone's location when it was added ---------- */
+  function exifGps(buf) {
+    try {
+      const v = new DataView(buf);
+      if (v.getUint16(0) !== 0xFFD8) return null;
+      let o = 2;
+      while (o + 10 < v.byteLength) {
+        const marker = v.getUint16(o), len = v.getUint16(o + 2);
+        if (marker === 0xFFE1 && v.getUint32(o + 4) === 0x45786966) {
+          const t = o + 10, le = v.getUint16(t) === 0x4949;
+          const u16 = p => v.getUint16(p, le), u32 = p => v.getUint32(p, le);
+          const ifd0 = t + u32(t + 4); let gps = 0;
+          for (let i = 0, n = u16(ifd0); i < n; i++) { const e = ifd0 + 2 + i * 12; if (u16(e) === 0x8825) gps = u32(e + 8); }
+          if (!gps) return null;
+          const g = t + gps, tags = {};
+          for (let i = 0, n = u16(g); i < n; i++) {
+            const e = g + 2 + i * 12, tag = u16(e), type = u16(e + 2);
+            if (type === 2) tags[tag] = String.fromCharCode(v.getUint8(e + 8));
+            else if (type === 5) { const p = t + u32(e + 8); tags[tag] = [0, 1, 2].map(k => u32(p + k * 8) / (u32(p + k * 8 + 4) || 1)); }
+          }
+          if (!tags[2] || !tags[4]) return null;
+          const dms = a => a[0] + a[1] / 60 + a[2] / 3600;
+          let lat = dms(tags[2]), lng = dms(tags[4]);
+          if (tags[1] === 'S') lat = -lat; if (tags[3] === 'W') lng = -lng;
+          return isFinite(lat) && isFinite(lng) && (lat || lng) ? { lat, lng } : null;
+        }
+        if ((marker & 0xFF00) !== 0xFF00) break;
+        o += 2 + len;
+      }
+    } catch { }
+    return null;
+  }
+  function phoneLocation() {
+    return new Promise(res => {
+      try { navigator.geolocation.getCurrentPosition(p => res({ lat: p.coords.latitude, lng: p.coords.longitude }), () => res(null), { timeout: 8000, maximumAge: 60000, enableHighAccuracy: true }); }
+      catch { res(null); }
+    });
+  }
+  const meters = (a, b) => { const R = 6371000, r = x => x * Math.PI / 180, dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+  const distTxt = m => m < 1000 ? Math.round(m) + ' m' : (m / 1609).toFixed(1) + ' mi';
+  function sideCenter() {
+    const g = SIDES.map(s => A.gps[s]).filter(Boolean);
+    return g.length ? { lat: g.reduce((t, x) => t + x.lat, 0) / g.length, lng: g.reduce((t, x) => t + x.lng, 0) / g.length } : null;
+  }
+  function locIssues() {
+    const out = [], c = sideCenter();
+    for (const s of PHOTO_TABS) {
+      const g = A.gps[s];
+      if (!A.photos[s]) continue;
+      if (!g) { out.push({ s, src: 'No location', check: 'Unknown', bad: true }); continue; }
+      const src = g.src === 'photo' ? 'Photo GPS' : 'Your phone';
+      if (s === 'E') {
+        if (!c) out.push({ s, src, check: 'Add side photos to compare' });
+        else { const d = meters(c, g); out.push({ s, src, check: distTxt(d) + ' from the building' + (d < 100 ? ': too close for 2–3 blocks' : d > 800 ? ': farther than 2–3 blocks' : ''), bad: d < 100 || d > 800 }); }
+      } else if (c) { const d = meters(c, g); out.push({ s, src, check: d > 120 ? distTxt(d) + ' from the other photos' : 'Matches the other sides', bad: d > 120 }); }
+      else out.push({ s, src, check: '' });
+    }
+    return out;
+  }
+  function renderLoc() {
+    const rows = locIssues();
+    $('#locTable tbody').innerHTML = rows.map(r => `<tr><td>${esc(tabName(r.s))}</td><td>${esc(r.src)}</td><td${r.bad ? ' style="color:var(--warn);font-weight:700"' : ''}>${esc(r.check)}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">Add photos to check their locations.</td></tr>';
+    const c = sideCenter();
+    if (A.addr && A.addr.found) $('#addrResult').textContent = `${A.addr.formatted}${c ? ' · ' + distTxt(meters(c, A.addr)) + ' from where the side photos were taken' + (meters(c, A.addr) > 150 ? '. Check the address.' : '. Looks right.') : ''}`;
+    else if (A.addr && A.addr.demo) $('#addrResult').textContent = 'The address lookup runs on the shared server. In demo mode, check it yourself.';
+    else if (A.addr) $('#addrResult').textContent = "Google couldn't find that address. Check the spelling, or add the city and state.";
+    else $('#addrResult').textContent = '';
+  }
+  async function checkAddress() {
+    const addr = $('#bAddr').value.trim();
+    if (!addr) { toast('Enter the address first.'); return; }
+    $('#checkAddr').disabled = true;
+    try { A.addr = Local() ? { demo: true } : await Api.call('geocode', { address: addr }); }
+    catch (e) { toast("Couldn't check the address. " + e.message); }
+    finally { $('#checkAddr').disabled = false; renderLoc(); }
+  }
   function renderAdmin() {
     const ok = S.session.role === 'admin';
     $('#adminDenied').hidden = ok; $('#adminBody').hidden = !ok;
     $('#adminDept').textContent = `${S.session.dept.name} · ${S.session.mode === 'sheets' ? 'saves to the Google Sheet and Drive' : 'demo mode, saves on this device'}`;
     if (!$('#hzList').children.length) {
-      $('#hzList').innerHTML = Object.entries(Engine.HAZARDS).map(([k, h]) => `<div class="hzrow"><label><input type="checkbox" data-hz="${k}"> ${esc(h.label)}</label>
-        <select data-hzside="${k}" aria-label="${esc(h.label)} side"><option value="">Any side</option>${SIDES.map(s => `<option value="${s}">Side ${s}</option>`).join('')}</select>
-        <input type="text" data-hznote="${k}" placeholder="${k === 'other' ? 'Describe it' : 'Note (optional)'}" aria-label="${esc(h.label)} note"></div>`).join('');
+      $('#hzList').innerHTML = Object.entries(HAZARD_LABEL).map(([k, label]) => `<div class="hzrow"><label><input type="checkbox" data-hz="${k}"> ${esc(label)}</label>
+        <select data-hzside="${k}" aria-label="${esc(label)} side"><option value="">Any side</option>${SIDES.map(s => `<option value="${s}">Side ${s}</option>`).join('')}</select>
+        <input type="text" data-hznote="${k}" placeholder="${k === 'other' ? 'Describe it' : 'Note (optional)'}" aria-label="${esc(label)} note"></div>`).join('');
     }
     renderTagger();
     renderMyBldgs();
   }
   function renderTagger() {
-    $('#photoTabs').innerHTML = SIDES.map(s => `<button type="button" data-ptab="${s}" aria-pressed="${s === A.side}">${Engine.SIDE_NAME[s]}<span class="dot ${A.photos[s] && A.boxes[s].some(b => b.type !== 'roof') ? 'ok' : ''}"></span></button>`).join('');
-    $('#photoHint').textContent = { A: 'Alpha is the address side, the windshield view.', B: 'Bravo is the left side as you face the front.', C: 'Charlie is the rear.', D: 'Delta is the right side as you face the front.' }[A.side];
+    const done = s => s === 'E' ? !!(A.photos.E && A.point) : !!(A.photos[s] && A.boxes[s].some(b => b.type !== 'roof'));
+    $('#photoTabs').innerHTML = PHOTO_TABS.map(s => `<button type="button" data-ptab="${s}" aria-pressed="${s === A.side}">${tabName(s)}<span class="dot ${done(s) ? 'ok' : ''}"></span></button>`).join('');
+    $('#photoHint').textContent = { A: 'Alpha is the address side, the windshield view.', B: 'Bravo is the left side as you face the front.', C: 'Charlie is the rear.', D: 'Delta is the right side as you face the front.', E: 'Stand 2–3 blocks away and look down the street toward the building.' }[A.side];
+    const ap = A.side === 'E';
+    $('#boxTools').hidden = ap; $('#apTip').hidden = !ap || !A.photos.E;
+    $('#tagEmpty').innerHTML = ap ? 'No approach photo yet.<br>Stand 2–3 blocks away so members see the skyline as they drive in.' : 'No photo yet for this side.<br>Stand back far enough to fit the whole side in the frame.';
     $('#typeChips').innerHTML = TYPES.map(([k, l]) => `<button type="button" data-type="${k}" aria-pressed="${A.type === k}">${l}</button>`).join('');
     const st = +$('#bStories').value || 2;
     const floors = ['B', ...Array.from({ length: st }, (_, i) => String(i + 1))];
@@ -1674,15 +1603,25 @@ const FX = (() => {
     const has = !!A.photos[A.side];
     $('#tagEmpty').hidden = has; $('#tagger img').hidden = !has; $('#tagger canvas').hidden = !has;
     if (has && $('#tagger img').getAttribute('src') !== A.photos[A.side]) { $('#tagger img').onload = drawBoxes; $('#tagger img').src = A.photos[A.side]; }
+    if (ap) { drawBoxes(); renderLoc(); return; }
     $('#boxList').innerHTML = A.boxes[A.side].map((b, i) => `<button type="button" data-box="${i}" class="${i === A.sel ? 'sel' : ''}">${TYPES.find(t => t[0] === b.type)[2]}${b.type === 'roof' ? '' : b.fl}·${i + 1}</button>`).join('') || '<span class="muted" style="font-size:.9rem">None yet.</span>';
     $('#delBox').disabled = A.sel < 0;
     drawBoxes();
+    renderLoc();
   }
   function drawBoxes() {
     const img = $('#tagger img'), cv = $('#tagger canvas');
     if (img.hidden || !img.clientWidth) return;
     const w = img.clientWidth, h = img.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
     cv.width = w * dpr; cv.height = h * dpr; const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+    if (A.side === 'E') {
+      if (!A.point) return;
+      const x = A.point.x * w, y = A.point.y * h;
+      c.strokeStyle = '#ffffff'; c.lineWidth = 4; c.beginPath(); c.arc(x, y, 14, 0, 7); c.moveTo(x - 24, y); c.lineTo(x + 24, y); c.moveTo(x, y - 24); c.lineTo(x, y + 24); c.stroke();
+      c.strokeStyle = '#c0381e'; c.lineWidth = 2; c.stroke();
+      c.font = '600 12px "IBM Plex Mono", monospace'; c.fillStyle = '#c0381e'; c.fillRect(x + 16, y - 30, 72, 18); c.fillStyle = '#fff'; c.fillText('BUILDING', x + 21, y - 17);
+      return;
+    }
     const all = A.boxes[A.side].concat(A.draft ? [A.draft] : []);
     all.forEach((b, i) => {
       const col = TYPE_COLOR[b.type]; c.lineWidth = i === A.sel ? 3.5 : 2; c.strokeStyle = i === A.sel ? '#ffffff' : col;
@@ -1696,9 +1635,13 @@ const FX = (() => {
     const cv = $('#tagger canvas');
     const pt = e => { const r = cv.getBoundingClientRect(); return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) }; };
     let s = null;
-    cv.addEventListener('pointerdown', e => { e.preventDefault(); cv.setPointerCapture(e.pointerId); s = pt(e); A.draft = null; });
+    cv.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      if (A.side === 'E') { A.point = pt(e); renderTagger(); return; }
+      cv.setPointerCapture(e.pointerId); s = pt(e); A.draft = null;
+    });
     cv.addEventListener('pointermove', e => {
-      if (!s) return; const p = pt(e);
+      if (!s || A.side === 'E') return; const p = pt(e);
       A.draft = { type: A.type, fl: A.type === 'roof' ? 'R' : A.fl, x: Math.min(s.x, p.x), y: Math.min(s.y, p.y), w: Math.abs(p.x - s.x), h: Math.abs(p.y - s.y) }; drawBoxes();
     });
     const end = e => {
@@ -1732,9 +1675,12 @@ const FX = (() => {
     if (!v('bAddr')) errs.push('Add the address.');
     const sqft = +v('bSqft'); if (!sqft) errs.push('Enter the square footage.');
     for (const s of SIDES) {
-      if (!A.photos[s]) errs.push(`Add a photo of side ${Engine.SIDE_NAME[s]}.`);
-      else if (!A.boxes[s].some(b => b.type !== 'roof')) errs.push(`Mark at least one window or door on side ${Engine.SIDE_NAME[s]}.`);
+      if (!A.photos[s]) errs.push(`Add a photo of side ${SIDE_NAME[s]}.`);
+      else if (!A.boxes[s].some(b => b.type !== 'roof')) errs.push(`Mark at least one window or door on side ${SIDE_NAME[s]}.`);
     }
+    if (!A.photos.E) errs.push('Add the approach photo from 2–3 blocks away.');
+    else if (!A.point) errs.push('Tap where the building is in the approach photo.');
+    if (!$('#locConfirm').checked) errs.push('Check the location list, then confirm the address and photos.');
     if (errs.length) return { errs };
     const stories = +v('bStories'); const cat = v('bCat');
     const W = +v('bW') || Math.round(Math.sqrt(sqft / stories * 1.4)); const D = +v('bD') || Math.round(sqft / stories / W);
@@ -1752,29 +1698,33 @@ const FX = (() => {
       }
       sides[s] = { src: A.photos[s], openings: list };
     }
-    return { b: { id, dept: S.session.dept.id, name: v('bName'), address: addr, command: v('bCmd') || street.charAt(0).toUpperCase() + street.slice(1), sqft, stories, category: cat,
+    const c = sideCenter(), at = A.addr && A.addr.found ? A.addr : c;
+    const check = locIssues().map(r => tabName(r.s) + ': ' + r.src + (r.check ? ', ' + r.check : '')).join('; ') + (A.addr && A.addr.found && c ? '; address ' + distTxt(meters(c, A.addr)) + ' from photos' : '');
+    const location = { lat: at ? +at.lat.toFixed(6) : null, lng: at ? +at.lng.toFixed(6) : null, check, confirmed: true };
+    return { location, approach: { src: A.photos.E, x: +A.point.x.toFixed(4), y: +A.point.y.toFixed(4) }, b: { id, dept: S.session.dept.id, name: v('bName'), address: addr, command: v('bCmd') || street.charAt(0).toUpperCase() + street.slice(1), sqft, stories, category: cat,
       typeCategories: [cat].concat(cat === 'multifamily' ? ['residential'] : []), typeLabel: catName(cat), construction: v('bCons'), planW: W, planD: D, hazards, sides } };
   }
   async function saveBuilding() {
-    const { b, errs } = collectBuilding();
+    const { b, errs, location, approach } = collectBuilding();
     const err = $('#adminErr');
     if (errs) { err.hidden = false; err.innerHTML = errs.map(esc).join('<br>'); return; }
     err.hidden = true; $('#saveBldg').disabled = true; $('#saveHint').textContent = 'Saving…';
     try {
       if (S.session.mode === 'sheets') {
-        const photos = Object.fromEntries(SIDES.map(s => [s, b.sides[s].src]));
+        const photos = Object.fromEntries(SIDES.map(s => [s, b.sides[s].src])); photos.E = approach.src;
         const openings = SIDES.flatMap(s => b.sides[s].openings.map(o => ({ ...o, side: s })));
         const { sides, ...meta } = b;
-        const j = await Api.call('saveBuilding', { building: meta, openings, photos });
-        b.sides && SIDES.forEach(sd => { const f = j.building.photos[sd]; if (f) imgCache[f] = Promise.resolve(photos[sd]); });
+        const j = await Api.call('saveBuilding', { building: meta, openings, photos, approach: { x: approach.x, y: approach.y }, location });
+        PHOTO_TABS.forEach(sd => { const f = j.building.photos[sd]; if (f) imgCache[f] = Promise.resolve(photos[sd]); });
         S.buildings.push(fromRemote(j.building));
       } else {
+        b.approach = approach; b.lat = location.lat; b.lng = location.lng;
         const list = store.get('custom', []); list.push(b);
         if (!store.set('custom', list)) throw new Error('This device is out of storage space for photos. Remove a saved building, or connect the Google Sheet.');
         S.buildings.push(b);
       }
       toast('Building saved. It is in the library now.');
-      A.photos = {}; A.boxes = { A: [], B: [], C: [], D: [] }; A.side = 'A'; A.sel = -1;
+      A.photos = {}; A.boxes = { A: [], B: [], C: [], D: [] }; A.side = 'A'; A.sel = -1; A.point = null; A.gps = {}; A.addr = null; $('#locConfirm').checked = false;
       ['bName', 'bAddr', 'bCmd', 'bSqft', 'bCons', 'bW', 'bD'].forEach(id => $('#' + id).value = '');
       $$('[data-hz]').forEach(x => x.checked = false);
       renderAdmin();
@@ -1790,14 +1740,15 @@ const FX = (() => {
 
   /* ---------- wiring ---------- */
   function wire() {
-    $('#loginMode').textContent = Api.url() ? "We'll email you a 6-digit code to sign in." : 'Demo mode: built-in buildings and rules on this device.';
+    $('#loginMode').textContent = Api.url() ? "We'll email you a 6-digit code to sign in." : window.LocalServer ? 'Demo mode: built-in buildings and rules on this device.' : '';
+    if (!Server.available()) { $('#loginErr').hidden = false; $('#loginErr').textContent = "This copy of the simulator isn't connected to its server yet. Your training admin needs to add the server address to config.js."; $('#loginBtn').disabled = true; }
     $('#changeEmail').onclick = () => { loginStage('email'); $('#loginEmail').focus(); };
     $('#loginForm').addEventListener('submit', async e => {
       e.preventDefault(); const er = $('#loginErr'); er.hidden = true;
       const btn = $('#loginBtn'); btn.disabled = true; btn.textContent = 'Working…';
       try {
         const email = cleanEmail($('#loginEmail').value);
-        if (!Api.url()) { demoSignIn(email); go('home'); }
+        if (Local()) { demoSignIn(email); go('home'); }
         else if (loginStage.now !== 'code') { await Api.call('requestCode', { email }); loginStage('code', email); }
         else { const j = await Api.call('verifyCode', { email, code: $('#loginCode').value }); store.set('token', j.token); await loadAgency(); go('home'); }
       } catch (err) { er.hidden = false; er.textContent = err.message; }
@@ -1807,21 +1758,27 @@ const FX = (() => {
     $$('[data-nav]').forEach(b => b.onclick = () => go(b.dataset.nav));
     $('#randomBtn').onclick = () => start(S.buildings[Math.floor(Math.random() * S.buildings.length)]);
     $('#lib').addEventListener('click', e => { const b = e.target.closest('[data-run]'); if (b) start(S.buildings[+b.dataset.run]); });
-    $('#arriveBtn').onclick = arrive;
-    $('#replayBtn').onclick = () => say(S.sc.dispatch);
+    $('#respondBtn').onclick = respond;
+    $('#arriveNowBtn').onclick = arrive;
+    $('#replayBtn').onclick = () => S.sc && say(S.sc.dispatch);
     $('#pttBtn').onclick = () => Speech.toggle($('#pttBtn'), $('#pttState'), $('#report'), $('#micNote'));
     $('#ptt2Btn').onclick = () => Speech.toggle($('#ptt2Btn'), $('#ptt2State'), $('#report360'), $('#micNote'));
-    $('#report').addEventListener('input', liveHits);
     $('#submitBtn').onclick = submitReport;
-    $('#do360').onclick = () => { $('#ask360').hidden = true; S.did360 = true; go('walk'); walk('A'); };
-    $('#skip360').onclick = () => { $('#ask360').hidden = true; S.did360 = false; finish(); };
+    $('#correctBtn').onclick = () => { Speech.stop(); $('#askChoice').hidden = true; $('#corrBox').hidden = false; $('#corrText').value = ''; $('#corrNote').hidden = true;
+      $('#corrHint').textContent = `Correct only what dispatch got wrong, for example: "${S.dispatchName} from ${settings().unit}, correction, this is a small building."`; $('#corrText').focus(); };
+    $('#cancelCorr').onclick = () => { Speech.stop(); showChoice(); };
+    $('#sendCorr').onclick = sendCorrection;
+    $('#ptt3Btn').onclick = () => Speech.toggle($('#ptt3Btn'), $('#ptt3State'), $('#corrText'), $('#corrNote'));
+    $('#do360').onclick = () => { Speech.stop(); $('#ask360').hidden = true; S.did360 = true; go('walk'); walk('A'); };
+    $('#skip360').onclick = () => { Speech.stop(); $('#ask360').hidden = true; S.did360 = false; finish(); };
     $('#sideBtns').addEventListener('click', e => { const b = e.target.closest('[data-side]'); if (b) walk(b.dataset.side); });
     $('#nextSideBtn').onclick = () => walk($('#nextSideBtn').dataset.to);
     $('#finishWalkBtn').onclick = finish;
     $('#againBtn').onclick = () => start(S.buildings[Math.floor(Math.random() * S.buildings.length)]);
     $('#sameBtn').onclick = () => start(S.b);
-    $('#speakModel').onclick = () => say($('#modelText').textContent);
-    $('#saveSettings').onclick = () => { store.set('unit', $('#sUnit').value.trim() || 'Engine 1'); store.set('aids', $('#sAids').value); store.set('voice', $('#sVoice').value); toast('Saved.'); };
+    $('#speakModel').onclick = () => say($('#modelText').textContent + ' ' + $('#model360Text').textContent);
+    $('#retryGrade').onclick = finish;
+    $('#saveSettings').onclick = () => { store.set('unit', $('#sUnit').value); store.set('aids', $('#sAids').value); store.set('voice', $('#sVoice').value); store.set('delays', $('#sDelays').value); store.set('dispErr', $('#sDispErr').value); toast('Saved.'); };
     $('#signOut').onclick = () => { if (S.session && S.session.mode === 'sheets') Api.call('signOut').catch(() => { }); store.del('token'); store.del('session'); S.session = null; loginStage('email'); go('login'); };
     // admin
     $('#photoTabs').addEventListener('click', e => { const b = e.target.closest('[data-ptab]'); if (b) { A.side = b.dataset.ptab; A.sel = -1; renderTagger(); } });
@@ -1833,8 +1790,18 @@ const FX = (() => {
     $('#bStories').onchange = renderTagger;
     $('#photoInput').onchange = async e => {
       const f = e.target.files[0]; e.target.value = ''; if (!f) return;
-      try { A.photos[A.side] = await readPhoto(f); renderTagger(); } catch (err) { toast(err.message); }
+      const side = A.side;
+      try {
+        const [img, buf] = await Promise.all([readPhoto(f), f.slice(0, 262144).arrayBuffer().catch(() => null)]);
+        A.photos[side] = img; if (side === 'E') A.point = null;
+        const g = buf && exifGps(buf);
+        A.gps[side] = g ? { ...g, src: 'photo' } : null;
+        renderTagger();
+        if (!g) { const p = await phoneLocation(); if (p) { A.gps[side] = { ...p, src: 'phone' }; renderLoc(); } }
+      } catch (err) { toast(err.message); }
     };
+    $('#checkAddr').onclick = checkAddress;
+    $('#bAddr').addEventListener('change', () => { A.addr = null; renderLoc(); });
     $('#saveBldg').onclick = saveBuilding;
     $('#myBldgs').addEventListener('click', e => {
       const b = e.target.closest('[data-delb]'); if (!b) return;
@@ -1863,10 +1830,10 @@ const FX = (() => {
     if (sess && sess.email) $('#loginEmail').value = sess.email;
     if (Api.url()) {
       if (store.get('token', '')) { try { await loadAgency(); go('home'); return; } catch (e) { if (e.code !== 'auth') { go('login'); $('#loginErr').hidden = false; $('#loginErr').textContent = e.message; return; } } }
-    } else if (sess && sess.email) { demoSignIn(sess.email); go('home'); return; }
+    } else if (Local() && sess && sess.email) { demoSignIn(sess.email); go('home'); return; }
     go('login');
   }
-  window.SizeUpTest = { start: (i, opts) => { S.b = S.buildings[i]; start(S.b); if (opts) { S.sc = Engine.makeScenario(S.b, { unit: settings().unit, ...opts }); } }, state: () => S };
+  window.SizeUpTest = { start: (i, test) => start(S.buildings[i], test), state: () => S };
   boot();
 })();
 
