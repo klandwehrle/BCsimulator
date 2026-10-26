@@ -100,6 +100,7 @@ textarea { resize: vertical; }
 table.t { width: 100%; border-collapse: collapse; font-size: .92rem; font-variant-numeric: tabular-nums; }
 table.t th { text-align: left; font-family: var(--f-mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--line); padding: 6px 8px; }
 table.t td { border-bottom: 1px solid var(--line); padding: 8px; vertical-align: top; }
+table.t tr.editing td { background: var(--accent-soft); }
 .scroll-x { overflow-x: auto; }
 
 /* dispatch */
@@ -377,10 +378,12 @@ img { max-width: 100%; }
 
 <!-- ADMIN -->
 <section data-screen="admin" hidden>
-  <div style="display:grid;gap:6px"><div class="eyebrow" id="adminDept"></div><h2>Add a building</h2>
+  <div style="display:grid;gap:6px"><div class="eyebrow" id="adminDept"></div><h2 id="formTitle">Add a building</h2>
     <p class="muted">Take a photo of each side, then drag a box over every window, door, garage door, and basement access. The simulator places fire and smoke in those boxes.</p></div>
   <p class="note bad" id="adminDenied" hidden>Only agency admins can add buildings. Ask your training officer to list your email as an admin in the Users tab.</p>
   <div id="adminBody" style="display:grid;gap:20px">
+  <div class="panel" id="myBldgsPanel" hidden><h3>Your agency's buildings</h3><p class="muted" style="font-size:.92rem">Edit a building to change its facts, hazards, photos, openings, or approach point. Samples can't be edited.</p>
+    <div class="scroll-x"><table class="t" id="myBldgs"><thead><tr><th>Building</th><th>Sq ft</th><th>Openings</th><th></th></tr></thead><tbody></tbody></table></div></div>
   <div class="panel">
     <h3>1. Building facts</h3>
     <div class="grid2">
@@ -421,8 +424,7 @@ img { max-width: 100%; }
     <label class="row" style="font-weight:700;gap:10px;align-items:flex-start"><input type="checkbox" id="locConfirm" style="margin-top:4px"> I confirm the address is right and these photos are of this building.</label>
   </div>
   <p class="note bad" id="adminErr" hidden></p>
-  <div class="row"><button class="btn big" type="button" id="saveBldg">Save building</button><span class="muted" id="saveHint"></span></div>
-  <div class="panel" id="myBldgsPanel" hidden><h3>Buildings saved on this device</h3><div class="scroll-x"><table class="t" id="myBldgs"><thead><tr><th>Building</th><th>Sq ft</th><th>Openings</th><th></th></tr></thead><tbody></tbody></table></div></div>
+  <div class="row"><button class="btn big" type="button" id="saveBldg">Save building</button><button class="btn quiet" type="button" id="cancelEdit" hidden>Cancel editing</button><span class="muted" id="saveHint"></span></div>
   </div>
 </section>
 
@@ -1495,7 +1497,7 @@ const FX = (() => {
   /* ---------- admin: building upload and opening tagging ---------- */
   const TYPES = [['window', 'Window', 'W'], ['door', 'Door', 'D'], ['garage', 'Garage door', 'G'], ['basement', 'Basement access', 'B'], ['roof', 'Roof / eaves', 'R']];
   const TYPE_COLOR = { window: '#4fa3ff', door: '#ffb347', garage: '#c58bff', basement: '#5fd38a', roof: '#ff6b6b' };
-  const A = { side: 'A', photos: {}, boxes: { A: [], B: [], C: [], D: [] }, type: 'window', fl: '1', sel: -1, draft: null, point: null, gps: {}, addr: null };
+  const A = { side: 'A', photos: {}, boxes: { A: [], B: [], C: [], D: [] }, type: 'window', fl: '1', sel: -1, draft: null, point: null, gps: {}, addr: null, editId: null, keep: {}, prev: null };
   const PHOTO_TABS = ['A', 'B', 'C', 'D', 'E'];
   const tabName = s => s === 'E' ? 'Approach' : SIDE_NAME[s];
 
@@ -1549,6 +1551,7 @@ const FX = (() => {
     for (const s of PHOTO_TABS) {
       const g = A.gps[s];
       if (!A.photos[s]) continue;
+      if (!g && A.keep[s]) { out.push({ s, src: 'Saved earlier', check: 'Photo unchanged' }); continue; }
       if (!g) { out.push({ s, src: 'No location', check: 'Unknown', bad: true }); continue; }
       const src = g.src === 'photo' ? 'Photo GPS' : 'Your phone';
       if (s === 'E') {
@@ -1687,7 +1690,7 @@ const FX = (() => {
     const hazards = $$('[data-hz]').filter(x => x.checked).map(x => ({ type: x.dataset.hz, side: $(`[data-hzside="${x.dataset.hz}"]`).value, note: $(`[data-hznote="${x.dataset.hz}"]`).value.trim() }));
     const addr = v('bAddr');
     const street = (addr.replace(/^\d+\s*/, '').split(/[ ,]/)[0] || 'Main');
-    const id = 'b' + Date.now().toString(36);
+    const id = A.editId || 'b' + Date.now().toString(36);
     const sides = {};
     for (const s of SIDES) {
       const top = A.boxes[s];
@@ -1698,45 +1701,90 @@ const FX = (() => {
       }
       sides[s] = { src: A.photos[s], openings: list };
     }
-    const c = sideCenter(), at = A.addr && A.addr.found ? A.addr : c;
+    const c = sideCenter(), at = A.addr && A.addr.found ? A.addr : c || (A.prev && A.prev.lat != null ? { lat: A.prev.lat, lng: A.prev.lng } : null);
     const check = locIssues().map(r => tabName(r.s) + ': ' + r.src + (r.check ? ', ' + r.check : '')).join('; ') + (A.addr && A.addr.found && c ? '; address ' + distTxt(meters(c, A.addr)) + ' from photos' : '');
     const location = { lat: at ? +at.lat.toFixed(6) : null, lng: at ? +at.lng.toFixed(6) : null, check, confirmed: true };
-    return { location, approach: { src: A.photos.E, x: +A.point.x.toFixed(4), y: +A.point.y.toFixed(4) }, b: { id, dept: S.session.dept.id, name: v('bName'), address: addr, command: v('bCmd') || street.charAt(0).toUpperCase() + street.slice(1), sqft, stories, category: cat,
+    return { location, approach: { src: A.photos.E, x: +A.point.x.toFixed(4), y: +A.point.y.toFixed(4) }, b: { id, dept: A.prev ? A.prev.dept : S.session.dept.id, name: v('bName'), address: addr, command: v('bCmd') || street.charAt(0).toUpperCase() + street.slice(1), sqft, stories, category: cat,
       typeCategories: [cat].concat(cat === 'multifamily' ? ['residential'] : []), typeLabel: catName(cat), construction: v('bCons'), planW: W, planD: D, hazards, sides } };
   }
   async function saveBuilding() {
     const { b, errs, location, approach } = collectBuilding();
     const err = $('#adminErr');
     if (errs) { err.hidden = false; err.innerHTML = errs.map(esc).join('<br>'); return; }
+    const editing = !!A.editId;
     err.hidden = true; $('#saveBldg').disabled = true; $('#saveHint').textContent = 'Saving…';
     try {
       if (S.session.mode === 'sheets') {
         const photos = Object.fromEntries(SIDES.map(s => [s, b.sides[s].src])); photos.E = approach.src;
+        const send = Object.fromEntries(PHOTO_TABS.map(s => [s, editing && A.keep[s] ? null : photos[s]]));
         const openings = SIDES.flatMap(s => b.sides[s].openings.map(o => ({ ...o, side: s })));
         const { sides, ...meta } = b;
-        const j = await Api.call('saveBuilding', { building: meta, openings, photos, approach: { x: approach.x, y: approach.y }, location });
+        const j = await Api.call(editing ? 'updateBuilding' : 'saveBuilding', { id: A.editId, building: meta, openings, photos: send, approach: { x: approach.x, y: approach.y }, location });
         PHOTO_TABS.forEach(sd => { const f = j.building.photos[sd]; if (f) imgCache[f] = Promise.resolve(photos[sd]); });
-        S.buildings.push(fromRemote(j.building));
+        const nb = fromRemote(j.building);
+        PHOTO_TABS.forEach(sd => { const t = sd === 'E' ? nb.approach : nb.sides[sd]; if (t) t.src = photos[sd]; });
+        replaceBuilding(nb);
       } else {
         b.approach = approach; b.lat = location.lat; b.lng = location.lng;
-        const list = store.get('custom', []); list.push(b);
+        const list = store.get('custom', []).filter(x => x.id !== b.id); list.push(b);
         if (!store.set('custom', list)) throw new Error('This device is out of storage space for photos. Remove a saved building, or connect the Google Sheet.');
-        S.buildings.push(b);
+        replaceBuilding(b);
       }
-      toast('Building saved. It is in the library now.');
-      A.photos = {}; A.boxes = { A: [], B: [], C: [], D: [] }; A.side = 'A'; A.sel = -1; A.point = null; A.gps = {}; A.addr = null; $('#locConfirm').checked = false;
-      ['bName', 'bAddr', 'bCmd', 'bSqft', 'bCons', 'bW', 'bD'].forEach(id => $('#' + id).value = '');
-      $$('[data-hz]').forEach(x => x.checked = false);
+      toast(editing ? 'Changes saved.' : 'Building saved. It is in the library now.');
+      resetForm();
       renderAdmin();
     } catch (e) { err.hidden = false; err.textContent = e.message; }
     finally { $('#saveBldg').disabled = false; $('#saveHint').textContent = ''; }
   }
-  function renderMyBldgs() {
-    if (S.session.mode === 'sheets') { $('#myBldgsPanel').hidden = true; return; }
-    const list = store.get('custom', []).filter(b => b.dept === S.session.dept.id || b.dept === 'ANY');
-    $('#myBldgsPanel').hidden = !list.length;
-    $('#myBldgs tbody').innerHTML = list.map(b => `<tr><td>${esc(b.name)}</td><td>${b.sqft.toLocaleString('en-US')}</td><td>${SIDES.reduce((n, s) => n + b.sides[s].openings.length, 0)}</td><td><button class="btn quiet small" type="button" data-delb="${esc(b.id)}">Remove</button></td></tr>`).join('');
+  function replaceBuilding(nb) {
+    const i = S.buildings.findIndex(x => x.id === nb.id);
+    if (i >= 0) S.buildings[i] = nb; else S.buildings.push(nb);
   }
+  function resetForm() {
+    A.photos = {}; A.boxes = { A: [], B: [], C: [], D: [] }; A.side = 'A'; A.sel = -1; A.point = null; A.gps = {}; A.addr = null; A.editId = null; A.keep = {}; A.prev = null;
+    $('#locConfirm').checked = false; $('#adminErr').hidden = true;
+    ['bName', 'bAddr', 'bCmd', 'bSqft', 'bCons', 'bW', 'bD'].forEach(id => $('#' + id).value = '');
+    $('#bStories').value = '2'; $('#bCat').value = 'residential';
+    $$('[data-hz]').forEach(x => { x.checked = false; $(`[data-hzside="${x.dataset.hz}"]`).value = ''; $(`[data-hznote="${x.dataset.hz}"]`).value = ''; });
+  }
+  const canEdit = b => !b.sample && (S.session.dept.id === 'ANY' || b.dept === S.session.dept.id);
+  async function editBuilding(id) {
+    const b = S.buildings.find(x => x.id === id); if (!b) return;
+    resetForm();
+    A.editId = b.id; A.prev = { dept: b.dept, lat: b.lat, lng: b.lng };
+    $('#bName').value = b.name || ''; $('#bAddr').value = b.address || ''; $('#bCmd').value = b.command || ''; $('#bSqft').value = b.sqft || '';
+    $('#bStories').value = String(b.stories || 2); $('#bCat').value = b.category || 'residential'; $('#bCons').value = b.construction || '';
+    $('#bW').value = b.planW || ''; $('#bD').value = b.planD || '';
+    for (const h of b.hazards || []) { const x = $(`[data-hz="${h.type}"]`); if (!x) continue; x.checked = true; $(`[data-hzside="${h.type}"]`).value = h.side || ''; $(`[data-hznote="${h.type}"]`).value = h.note || ''; }
+    for (const s of SIDES) A.boxes[s] = (b.sides[s].openings || []).map(o => ({ type: o.type, fl: o.type === 'roof' ? 'R' : String(o.fl), x: +o.x, y: +o.y, w: +o.w, h: +o.h }));
+    if (b.approach) A.point = { x: +b.approach.x, y: +b.approach.y };
+    renderAdmin();
+    $('#bName').scrollIntoView({ block: 'center' });
+    $('#saveHint').textContent = 'Loading photos…';
+    await Promise.all(PHOTO_TABS.map(async s => { try { const src = await srcOf(b, s); if (src) { A.photos[s] = src; A.keep[s] = true; } } catch { } }));
+    $('#saveHint').textContent = '';
+    renderTagger();
+  }
+  async function removeBuilding(id) {
+    try {
+      if (S.session.mode === 'sheets') await Api.call('deleteBuilding', { id });
+      else store.set('custom', store.get('custom', []).filter(x => x.id !== id));
+      S.buildings = S.buildings.filter(x => x.id !== id);
+      if (A.editId === id) resetForm();
+      toast('Building removed.'); renderAdmin();
+    } catch (e) { toast("Couldn't remove it. " + e.message); }
+  }
+  function renderMyBldgs() {
+    const list = S.buildings.filter(canEdit);
+    $('#myBldgsPanel').hidden = !list.length;
+    $('#myBldgs tbody').innerHTML = list.map(b => `<tr${b.id === A.editId ? ' class="editing"' : ''}><td>${esc(b.name)}<div class="muted" style="font-size:.85rem">${esc(b.address || '')}</div></td><td>${b.sqft.toLocaleString('en-US')}</td><td>${SIDES.reduce((n, s) => n + b.sides[s].openings.filter(o => o.type !== 'roof').length, 0)}</td>
+      <td><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn small" type="button" data-editb="${esc(b.id)}">${b.id === A.editId ? 'Editing' : 'Edit'}</button><button class="btn quiet small" type="button" data-delb="${esc(b.id)}">Remove</button></div></td></tr>`).join('');
+    const ed = A.editId && S.buildings.find(x => x.id === A.editId);
+    $('#formTitle').textContent = ed ? 'Edit ' + ed.name : 'Add a building';
+    $('#saveBldg').textContent = ed ? 'Save changes' : 'Save building';
+    $('#cancelEdit').hidden = !ed;
+  }
+
 
   /* ---------- wiring ---------- */
   function wire() {
@@ -1793,7 +1841,9 @@ const FX = (() => {
       const side = A.side;
       try {
         const [img, buf] = await Promise.all([readPhoto(f), f.slice(0, 262144).arrayBuffer().catch(() => null)]);
-        A.photos[side] = img; if (side === 'E') A.point = null;
+        A.photos[side] = img; A.keep[side] = false;
+        if (side === 'E') A.point = null;
+        else if (A.editId && A.boxes[side].length) { A.boxes[side] = []; A.sel = -1; toast('New photo for side ' + SIDE_NAME[side] + '. Mark its openings again.'); }
         const g = buf && exifGps(buf);
         A.gps[side] = g ? { ...g, src: 'photo' } : null;
         renderTagger();
@@ -1804,11 +1854,12 @@ const FX = (() => {
     $('#bAddr').addEventListener('change', () => { A.addr = null; renderLoc(); });
     $('#saveBldg').onclick = saveBuilding;
     $('#myBldgs').addEventListener('click', e => {
+      const ed = e.target.closest('[data-editb]'); if (ed) { editBuilding(ed.dataset.editb); return; }
       const b = e.target.closest('[data-delb]'); if (!b) return;
       if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Tap again to remove'; return; }
-      store.set('custom', store.get('custom', []).filter(x => x.id !== b.dataset.delb));
-      S.buildings = S.buildings.filter(x => x.id !== b.dataset.delb); renderMyBldgs(); toast('Removed.');
+      removeBuilding(b.dataset.delb);
     });
+    $('#cancelEdit').onclick = () => { resetForm(); renderAdmin(); toast('Editing canceled. Nothing was changed.'); };
     taggerPointer();
   }
 
