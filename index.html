@@ -1474,6 +1474,8 @@ const FX = (() => {
       S.sc = await Server.call('startScenario', { buildingId: b.id, unit: isBC() ? st.bcUnit : st.unit, mode: S.mode, delays: st.delays === 'on', dispatchErrors: st.dispErr === 'on', unitErrors: st.unitErr === 'on', icErrors: st.icErr === 'on', test });
       S.units = S.sc.units || [];
       if (S.sc.mode !== 'battalion') S.mode = 'engine';
+      if (S.sc.dispatchName) S.dispatchName = S.sc.dispatchName;
+      Voices.reset();
       S.bc = S.sc.bc || null;
       $('#unitsNote').textContent = isBC() ? 'Times are minutes after the first-due unit arrives.' : 'Times are minutes after you arrive.';
       $('#dispText').textContent = S.sc.dispatch;
@@ -1532,7 +1534,7 @@ const FX = (() => {
       show(m);
       const next = () => { enroute.h = setTimeout(step, 900); };
       if (settings().voice === 'on' && 'speechSynthesis' in window) {
-        try { const u = new SpeechSynthesisUtterance(spoken(m.text)); u.rate = 1.1; let done = false; const go2 = () => { if (!done) { done = true; next(); } }; u.onend = go2; u.onerror = go2; speechSynthesis.speak(u); setTimeout(go2, 1500 + m.text.length * 75); }
+        try { const u = Voices.make(m.text, m.from); let done = false; const go2 = () => { if (!done) { done = true; next(); } }; u.onend = go2; u.onerror = go2; speechSynthesis.speak(u); setTimeout(go2, 1500 + m.text.length * 75); }
         catch { enroute.h = setTimeout(step, 2200 + m.text.length * 25); }
       } else enroute.h = setTimeout(step, 2200 + m.text.length * 25);
     };
@@ -1581,9 +1583,31 @@ const FX = (() => {
   const spoken = t => String(t || '').replace(/1¾"?/g, 'inch and three quarter').replace(/2½"?/g, 'two and a half inch').replace(/1½"?/g, 'inch and a half')
     .replace(/\b1\.75\b/g, 'inch and three quarter').replace(/\b2\.5\b/g, 'two and a half inch').replace(/\b([Aa]) inch\b/g, '$1n inch');
   const radioText = t => isBC() ? spoken(t) : t;
-  function say(text) {
-    text = spoken(text);
-    try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.02; speechSynthesis.speak(u); } catch { }
+  /* Every speaker on the radio gets their own voice: a different system voice where the device has several, and a different pitch and pace. */
+  const Voices = (() => {
+    let list = [], who = {}, n = 0;
+    const load = () => { try { const all = speechSynthesis.getVoices(); const en = all.filter(v => /^en/i.test(v.lang)); list = (en.length ? en : all).slice().sort((a, b) => (b.localService ? 1 : 0) - (a.localService ? 1 : 0)); } catch { } };
+    try { load(); speechSynthesis.addEventListener('voiceschanged', load); } catch { }
+    const PITCH = [1.0, 0.75, 1.25, 0.9, 1.15, 0.65, 1.35, 0.85, 1.05];
+    const RATE = [1.02, 0.98, 1.1, 0.95, 1.08, 1.0, 1.14, 0.92, 1.05];
+    const key = from => {
+      from = String(from || S.dispatchName || 'Dispatch');
+      if (isBC() && S.b && S.bc && from === S.b.command + ' Command') return S.bc.ic;   // the first-due officer talking as command
+      return from;
+    };
+    return {
+      reset() { who = {}; n = 0; who[S.dispatchName || 'Dispatch'] = n++; },
+      make(text, from) {
+        const u = new SpeechSynthesisUtterance(spoken(text));
+        const k0 = key(from); let k = who[k0]; if (k == null) k = who[k0] = n++;
+        if (list.length) { u.voice = list[k % list.length]; u.lang = u.voice.lang; }
+        u.pitch = PITCH[k % PITCH.length]; u.rate = RATE[k % RATE.length];
+        return u;
+      }
+    };
+  })();
+  function say(text, from) {
+    try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); speechSynthesis.speak(Voices.make(text, from)); } catch { }
   }
   function sceneData(side) {
     const sd = S.b.sides[side];
@@ -1698,7 +1722,7 @@ const FX = (() => {
   const STATUS_TEXT = { level1: 'Level one', onscene: 'On scene', staging: 'Level two staging', assigned: 'Assigned', command: 'Command' };
   const STATUS_RADIO = { level1: 'level one, one block out', onscene: 'on scene', staging: 'in level two staging' };
   const elapsed = () => S.t0 ? (Date.now() - S.t0) / 1000 + (S.skip || 0) : 0;
-  function speakQ(text) { if (settings().voice !== 'on') return; try { const u = new SpeechSynthesisUtterance(spoken(text)); u.rate = 1.05; speechSynthesis.speak(u); } catch { } }
+  function speakQ(text, from) { if (settings().voice !== 'on') return; try { speechSynthesis.speak(Voices.make(text, from)); } catch { } }
   function radio(from, text, kind) {
     if (kind !== 'me') text = radioText(text);
     S.radio.unshift({ from, text, kind });
@@ -1729,12 +1753,12 @@ const FX = (() => {
       S.announced.add(u.name);
       let txt = u.status === 'staging' ? `${cmd} from ${u.name}, ${STATUS_RADIO.staging}.` : `${S.dispatchName} from ${u.name}, ${STATUS_RADIO[u.status] || 'on scene'}.`;
       if (isBC() && u.status === 'staging') txt = S.bc && S.bc.staging ? `${cmd} from ${u.name}, in level two staging at ${S.bc.staging}.` : `${cmd} from ${u.name}, approaching the scene. Where do you want us to stage?`;
-      radio(u.name, txt, 'unit'); speakQ(txt);
+      radio(u.name, txt, 'unit'); speakQ(txt, u.name);
     });
     if (isBC() && S.bc && S.bc.timerAt != null && !S.timerSaid && elapsed() >= (S.bc.timerAt + 10) * 60) {
       S.timerSaid = true;
       const txt = `${cmd}, ${S.dispatchName}, 10 minutes on your timer.`;
-      radio(S.dispatchName, txt, 'disp'); speakQ(txt);
+      radio(S.dispatchName, txt, 'disp'); speakQ(txt, S.dispatchName);
     }
     if (t !== cmdTick.last) { cmdTick.last = t; renderCmdUnits(); }
   }
@@ -1770,7 +1794,7 @@ const FX = (() => {
         if (r.note) { $('#assignNote').hidden = false; $('#assignNote').textContent = r.note; return; }
         const me = (S.units.find(u => u.mine) || {}).name;
         radio(S.bc && S.bc.transfer ? S.b.command + ' Command' : me, text, 'me');
-        (r.replies || []).forEach(x => { radio(x.from, x.text, x.kind); speakQ(x.text); });
+        (r.replies || []).forEach(x => { radio(x.from, x.text, x.kind); speakQ(x.text, x.from); });
         if (r.units) S.units = r.units;
         if (r.bc) S.bc = r.bc;
         $('#assignText').value = ''; renderCmdUnits(); drawBc();
@@ -1782,7 +1806,7 @@ const FX = (() => {
       const r = await Server.call('assign', { scenarioId: S.sc.scenarioId, text, minute: Math.floor(elapsed() / 60) });
       if (r.note) { $('#assignNote').hidden = false; $('#assignNote').textContent = r.note; return; }
       radio(S.b.command + ' Command', text, 'me');
-      if (r.reply) { radio(r.from, r.reply, 'unit'); speakQ(r.reply); }
+      if (r.reply) { radio(r.from, r.reply, 'unit'); speakQ(r.reply, r.from); }
       if (r.units) S.units = r.units;
       $('#assignText').value = ''; renderCmdUnits();
     } catch (e) { if (e.code === 'auth') return expired(); toast("The unit didn't hear you. " + e.message); }
@@ -2584,7 +2608,7 @@ const FX = (() => {
     $('#unitsCmd').addEventListener('click', e => { const u = e.target.closest('[data-unit]'); if (!u) return; $('#assignText').value = u.dataset.unit + ' from ' + S.b.command + ' Command, '; $('#assignText').focus(); });
     $('#againBtn').onclick = () => start(S.buildings[Math.floor(Math.random() * S.buildings.length)]);
     $('#sameBtn').onclick = () => start(S.b);
-    $('#speakModel').onclick = () => say($('#modelText').textContent + ' ' + $('#model360Text').textContent);
+    $('#speakModel').onclick = () => say($('#modelText').textContent + ' ' + $('#model360Text').textContent, '__model');
     $('#retryGrade').onclick = finish;
     $('#saveSettings').onclick = () => { store.set('unit', $('#sUnit').value); store.set('aids', $('#sAids').value); store.set('voice', $('#sVoice').value); store.set('delays', $('#sDelays').value); store.set('dispErr', $('#sDispErr').value); store.set('unitErr', $('#sUnitErr').value); store.set('bcUnit', $('#sBcUnit').value); store.set('icErr', $('#sIcErr').value); toast('Saved.'); };
     $('#signOut').onclick = () => { if (S.session && S.session.mode === 'sheets') Api.call('signOut').catch(() => { }); store.del('token'); store.del('session'); S.session = null; loginStage('email'); go('login'); };
