@@ -1522,7 +1522,7 @@ const FX = (() => {
     $('#erLog').innerHTML = ''; S.radio = [];
     let i = 0, minute = 0;
     const show = m => {
-      S.radio.unshift({ from: m.from, text: m.text, kind: m.kind, at: m.m });
+      S.radio.unshift({ from: m.from, text: radioText(m.text), kind: m.kind, at: m.m });
       $('#erLog').innerHTML = S.radio.map(x => `<div class="m ${x.kind || ''}"><b>${esc(x.from)}</b>${esc(x.text)}</div>`).join('');
     };
     const step = () => {
@@ -1532,7 +1532,7 @@ const FX = (() => {
       show(m);
       const next = () => { enroute.h = setTimeout(step, 900); };
       if (settings().voice === 'on' && 'speechSynthesis' in window) {
-        try { const u = new SpeechSynthesisUtterance(m.text); u.rate = 1.1; let done = false; const go2 = () => { if (!done) { done = true; next(); } }; u.onend = go2; u.onerror = go2; speechSynthesis.speak(u); setTimeout(go2, 1500 + m.text.length * 75); }
+        try { const u = new SpeechSynthesisUtterance(spoken(m.text)); u.rate = 1.1; let done = false; const go2 = () => { if (!done) { done = true; next(); } }; u.onend = go2; u.onerror = go2; speechSynthesis.speak(u); setTimeout(go2, 1500 + m.text.length * 75); }
         catch { enroute.h = setTimeout(step, 2200 + m.text.length * 25); }
       } else enroute.h = setTimeout(step, 2200 + m.text.length * 25);
     };
@@ -1541,14 +1541,14 @@ const FX = (() => {
   function skipEnroute() {
     clearTimeout(enroute.h); try { speechSynthesis.cancel(); } catch { }
     const shown = S.radio.length, tl = S.sc.timeline || [];
-    tl.slice(shown).forEach(m => S.radio.unshift({ from: m.from, text: m.text, kind: m.kind, at: m.m }));
+    tl.slice(shown).forEach(m => S.radio.unshift({ from: m.from, text: radioText(m.text), kind: m.kind, at: m.m }));
     approach();
   }
   function arriveBC() {
     try { speechSynthesis.cancel(); } catch { }
     clearInterval(respond.h);
     const tl = S.sc.timeline || [];
-    if (S.radio.length < tl.length) { S.radio = []; tl.forEach(m => S.radio.unshift({ from: m.from, text: m.text, kind: m.kind, at: m.m })); }
+    if (S.radio.length < tl.length) { S.radio = []; tl.forEach(m => S.radio.unshift({ from: m.from, text: radioText(m.text), kind: m.kind, at: m.m })); }
     S.t0 = Date.now(); S.skip = S.bc.eta * 60; S.cmd = true;
     S.announced = new Set(S.units.filter(u => u.eta < S.bc.eta || u.mine).map(u => u.name));
     go('command');
@@ -1577,7 +1577,12 @@ const FX = (() => {
       [!!b.freq, 'Staging response frequency', b.freq || '']];
     $('#bcList').innerHTML = items.map(([done, label, note]) => `<li class="${done ? 'done' : ''}"><span>${esc(label)}</span>${note ? `<small>${esc(note)}</small>` : ''}</li>`).join('');
   }
+  /* How the radio says hose sizes out loud: "inch and three quarter", not "one three-quarter inch". */
+  const spoken = t => String(t || '').replace(/1¾"?/g, 'inch and three quarter').replace(/2½"?/g, 'two and a half inch').replace(/1½"?/g, 'inch and a half')
+    .replace(/\b1\.75\b/g, 'inch and three quarter').replace(/\b2\.5\b/g, 'two and a half inch').replace(/\b([Aa]) inch\b/g, '$1n inch');
+  const radioText = t => isBC() ? spoken(t) : t;
   function say(text) {
+    text = spoken(text);
     try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 1.02; speechSynthesis.speak(u); } catch { }
   }
   function sceneData(side) {
@@ -1693,8 +1698,9 @@ const FX = (() => {
   const STATUS_TEXT = { level1: 'Level one', onscene: 'On scene', staging: 'Level two staging', assigned: 'Assigned', command: 'Command' };
   const STATUS_RADIO = { level1: 'level one, one block out', onscene: 'on scene', staging: 'in level two staging' };
   const elapsed = () => S.t0 ? (Date.now() - S.t0) / 1000 + (S.skip || 0) : 0;
-  function speakQ(text) { if (settings().voice !== 'on') return; try { const u = new SpeechSynthesisUtterance(text); u.rate = 1.05; speechSynthesis.speak(u); } catch { } }
+  function speakQ(text) { if (settings().voice !== 'on') return; try { const u = new SpeechSynthesisUtterance(spoken(text)); u.rate = 1.05; speechSynthesis.speak(u); } catch { } }
   function radio(from, text, kind) {
+    if (kind !== 'me') text = radioText(text);
     S.radio.unshift({ from, text, kind });
     $('#radioLog').innerHTML = S.radio.map(m => `<div class="m ${m.kind || ''}">${m.from ? `<b>${esc(m.from)}</b>` : ''}${esc(m.text)}</div>`).join('');
   }
@@ -1721,7 +1727,7 @@ const FX = (() => {
     const cmd = S.b.command + ' Command';
     S.units.filter(u => !u.mine && !S.announced.has(u.name) && u.eta * 60 <= elapsed()).sort((a, b) => a.eta - b.eta).forEach(u => {
       S.announced.add(u.name);
-      let txt = `${cmd} from ${u.name}, ${STATUS_RADIO[u.status] || 'on scene'}.`;
+      let txt = u.status === 'staging' ? `${cmd} from ${u.name}, ${STATUS_RADIO.staging}.` : `${S.dispatchName} from ${u.name}, ${STATUS_RADIO[u.status] || 'on scene'}.`;
       if (isBC() && u.status === 'staging') txt = S.bc && S.bc.staging ? `${cmd} from ${u.name}, in level two staging at ${S.bc.staging}.` : `${cmd} from ${u.name}, approaching the scene. Where do you want us to stage?`;
       radio(u.name, txt, 'unit'); speakQ(txt);
     });
