@@ -334,6 +334,7 @@ img { max-width: 100%; }
       <p class="muted">A random building with a new fire every time, from smoke only to 100% involved.</p>
       <div class="fieldset"><span class="eyebrow">Respond as</span><div class="chips" id="roleSel" role="group" aria-label="Respond as">
         <button type="button" data-role="engine">Engine company officer</button><button type="button" data-role="battalion">Battalion chief</button></div>
+        <label class="f" style="max-width:320px">Your unit <select id="rigSel" aria-label="Your unit"></select></label>
         <span class="hint" id="roleHint"></span></div>
     </div>
     <button class="btn big" type="button" id="randomBtn">Start random call</button>
@@ -394,7 +395,7 @@ img { max-width: 100%; }
         <button class="ptt" type="button" id="pttBtn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
         <div class="ptt-status"><strong id="pttState">Tap to key up</strong><span class="muted" id="pttHint">Tap again when you're done talking.</span></div>
       </div>
-      <label class="f">What the app heard <span class="hint">Fix anything it misheard, or type your report.</span>
+      <label class="f"><span id="reportLabel">What the app heard</span>
         <textarea class="report" id="report" rows="7" placeholder="Engine 1 on scene, small 2 story single family residential…"></textarea></label>
       <p class="note warn" id="micNote" hidden></p>
       <button class="btn big" type="button" id="submitBtn">Submit report</button>
@@ -424,7 +425,7 @@ img { max-width: 100%; }
           <div class="ptt-status"><strong id="ptt2State">Tap to key up</strong><span class="muted">Report the fire's location, any change in plan, and hazards.</span></div>
         </div>
         <textarea class="report" id="report360" rows="4" placeholder="360 complete. Fire is on side Charlie, floor 1. Propane tank on side Bravo…"></textarea>
-        <button class="btn big" type="button" id="finishWalkBtn">Finish and debrief</button>
+        <button class="btn big" type="button" id="finishWalkBtn" hidden>Send 360 update</button>
       </div>
     </div>
   </div>
@@ -570,7 +571,7 @@ img { max-width: 100%; }
   </div>
   <div class="panel">
     <h3>Units</h3>
-    <p class="muted" style="font-size:.92rem">Minutes to arrive is how long the unit takes to reach a typical address in its first-due area, in whole minutes. Units out of service are never sent.</p>
+    <p class="muted" style="font-size:.92rem">Minutes to arrive is how long the unit takes to reach a typical address in its first-due area, in half-minute steps (4, 4.5, 5…). Units out of service are never sent.</p>
     <div class="scroll-x"><table class="t edit" id="apTable"><thead><tr><th>Unit</th><th>Type</th><th>Station</th><th>Staffed</th><th>Minutes</th><th>In service</th><th></th></tr></thead><tbody></tbody></table></div>
     <div><button class="btn quiet small" type="button" id="addUnit">Add unit</button></div>
   </div>
@@ -1325,12 +1326,15 @@ const FX = (() => {
   const S = { session: null, order: [], buildings: [], apparatus: [], dispatchName: 'Dispatch', units: [], b: null, sc: null, out: null, seen: new Set(), side: 'A', t0: 0, tReport: 0, did360: false };
   const scenes = {};
   const scene = id => scenes[id] || (scenes[id] = new FX.Scene($('#' + id)));
-  const defaultUnit = () => { const e = (S.apparatus || []).find(a => a.type === 'engine'); return e ? e.name : 'Engine 1'; };
-  const defaultBc = () => { const e = (S.apparatus || []).find(a => a.type === 'battalion'); return e ? e.name : 'Battalion 1'; };
+  const defaultUnit = () => { const e = (S.apparatus || []).find(a => rigType(a) === 'engine'); return e ? e.name : 'Engine 1'; };
+  const defaultBc = () => { const e = (S.apparatus || []).find(a => rigType(a) === 'battalion'); return e ? e.name : 'Battalion 1'; };
   const settings = () => ({ unit: store.get('unit', '') || defaultUnit(), aids: store.get('aids', 'on'), voice: store.get('voice', 'on'),
     delays: store.get('delays', 'off'), dispErr: store.get('dispErr', 'on'), unitErr: store.get('unitErr', 'on'),
     role: store.get('role', 'engine'), bcUnit: store.get('bcUnit', '') || defaultBc(), icErr: store.get('icErr', 'on') });
   const isBC = () => S.mode === 'battalion';
+  // Arrival times come in half-minute steps.
+  const minLabel = m => { const r = Math.round(m * 2) / 2; return r === 0.5 ? '30 sec' : (r % 1 ? Math.floor(r) + '½' : r) + ' min'; };
+  const clockOf = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, 2600); }
 
@@ -1440,11 +1444,21 @@ const FX = (() => {
     $('#histEmpty').hidden = hist.length > 0; $('#histTable').hidden = !hist.length;
     $('#histTable tbody').innerHTML = hist.map(h => `<tr><td>${esc(new Date(h.ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td><td>${esc(h.building)}</td><td>${esc(h.inv)}</td><td><strong>${h.score}</strong></td></tr>`).join('');
   }
+  // Which of the agency's units are engines, or battalion chiefs, from the type column (or the unit's name).
+  const rigType = a => { const t = String(a.type || '').toLowerCase(), n = String(a.name || '').toLowerCase();
+    if (/battalion|\bbc\b|\bbn\b|batt/.test(t) || (!t && /battalion|\bbc\b|\bbn\b/.test(n))) return 'battalion';
+    if (/engine|pumper/.test(t) || (!t && /engine/.test(n))) return 'engine'; return t; };
   function drawRole() {
     const st = settings();
     $$('#roleSel [data-role]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.role === st.role)));
+    const want = st.role === 'battalion' ? 'battalion' : 'engine';
+    let cur = st.role === 'battalion' ? st.bcUnit : st.unit;
+    const names = (S.apparatus || []).filter(a => rigType(a) === want).map(a => a.name);
+    if (names.length && names.indexOf(cur) < 0) { cur = names[0]; store.set(want === 'battalion' ? 'bcUnit' : 'unit', cur); st[want === 'battalion' ? 'bcUnit' : 'unit'] = cur; }   // a unit from another agency's list
+    else if (!names.length) names.push(cur);
+    $('#rigSel').innerHTML = names.map(n => `<option value="${esc(n)}"${n === cur ? ' selected' : ''}>${esc(n)}</option>`).join('');
     $('#roleHint').textContent = st.role === 'battalion'
-      ? `As ${st.bcUnit}: hear the first-due report, arrive after the first three units, take command, start the 10-minute timer, call more alarms if needed, and assign units.`
+      ? `As ${st.bcUnit}: hear the first-due report, arrive as the third unit, take command, start the 10-minute timer, call more alarms if needed, and assign units.`
       : `As ${st.unit}: first due. Give the initial radio report, walk the 360, then assign arriving units.`;
   }
   /* ---------- scenario flow: tone out, respond, approach, arrive ---------- */
@@ -1529,7 +1543,7 @@ const FX = (() => {
     go('enroute');
     const tl = (S.sc.timeline || []).slice(), eta = S.bc.eta;
     $('#erUnit').textContent = (S.units.find(u => u.mine) || {}).name || 'Battalion';
-    $('#erNote').textContent = `Listen to the first-due officer. You arrive ${eta} minutes after ${S.bc.ic}, after the first three units.`;
+    $('#erNote').textContent = `Listen to the first-due officer. You arrive ${minLabel(eta)} after ${S.bc.ic}, as the third unit on scene.`;
     $('#erLog').innerHTML = ''; S.radio = [];
     let i = 0, minute = 0;
     const show = m => {
@@ -1670,8 +1684,8 @@ const FX = (() => {
       const cls = [];
       let eta;
       if (u.mine) { eta = live ? 'On scene' : 'You'; cls.push('mine'); }
-      else if (live) { const rem = u.eta * 60 - sec; if (rem <= 0) { eta = 'On scene'; cls.push('here'); } else eta = Math.ceil(rem / 60) + ' min'; }
-      else eta = '+' + u.eta + ' min';
+      else if (live) { const rem = u.eta * 60 - sec; if (rem <= 0) { eta = 'On scene'; cls.push('here'); } else eta = clockOf(rem); }
+      else eta = '+' + minLabel(u.eta);
       if (u.delay) cls.push('late');
       if (u.level && u.level !== 'initial') cls.push('new');
       const meta = [TYPE_LABEL[u.type] || u.type, u.staff ? u.staff + ' staffed' : '', u.delay ? 'delayed ' + u.delay + ' min' : '', u.level && u.level !== 'initial' ? LEVEL_LABEL[u.level] : ''].filter(Boolean).join(' · ');
@@ -1755,30 +1769,48 @@ const FX = (() => {
     try { speechSynthesis.speak(Voices.make(text, from)); } catch { }
   }
   function flushSpeech() { while (heldSpeech.length) { const [t, f] = heldSpeech.shift(); speakQ(t, f); } }
-  /* Command board radio: tap to key up, tap again to send. Talk only. */
-  function radioBusy(on, msg) {
-    const btn = $('#ptt4Btn'), st = $('#ptt4State');
+  /* Every radio transmission works the same way: tap to key up, tap again to send. While it goes out the mic shows
+   * "Transmitting…" and then "Waiting for reply…" until the answer is back. Talk only, unless the browser has no speech recognition. */
+  const MICS = {
+    report: { btn: '#pttBtn', state: '#pttState', box: '#report', note: '#micNote', send: () => submitReport() },
+    corr: { btn: '#ptt3Btn', state: '#ptt3State', box: '#corrText', note: '#corrNote', send: () => sendCorrection() },
+    r360: { btn: '#ptt2Btn', state: '#ptt2State', box: '#report360', note: '#micNote', send: () => send360() },
+    cmd: { btn: '#ptt4Btn', state: '#ptt4State', box: '#assignText', note: '#assignNote', send: () => sendAssign() }
+  };
+  function radioBusy(m, on, msg) {
+    const btn = $(m.btn), st = $(m.state);
     btn.classList.toggle('busy', on); btn.setAttribute('aria-busy', String(on));
     st.classList.toggle('busy', on);
     st.textContent = on ? msg : 'Tap to key up';
   }
-  function keyRadio() {
-    const btn = $('#ptt4Btn');
+  function keyUp(name) {
+    const m = MICS[name], btn = $(m.btn);
     if (btn.classList.contains('busy')) return;   // still waiting on the last transmission
-    if (!Speech.live()) { try { speechSynthesis.cancel(); } catch { } $('#assignText').value = ''; $('#assignNote').hidden = true; }
-    Speech.toggle(btn, $('#ptt4State'), $('#assignText'), $('#assignNote'), text => {
-      if (!String(text || '').trim()) { radioBusy(false); $('#assignNote').hidden = false; $('#assignNote').textContent = 'The radio didn\'t hear anything. Tap the mic and try again.'; flushSpeech(); return; }
-      radioBusy(true, 'Transmitting…');
-      setTimeout(() => { if (btn.classList.contains('busy')) $('#ptt4State').textContent = 'Waiting for reply…'; }, 400);
-      const done = () => { radioBusy(false); flushSpeech(); };
-      sendAssign().then(done, done);
+    if (!Speech.live()) { try { speechSynthesis.cancel(); } catch { } $(m.box).value = ''; $(m.note).hidden = true; }
+    Speech.toggle(btn, $(m.state), $(m.box), $(m.note), text => {
+      if (!String(text || '').trim()) { radioBusy(m, false); $(m.note).hidden = false; $(m.note).textContent = 'The radio didn\'t hear anything. Tap the mic and try again.'; flushSpeech(); return; }
+      radioBusy(m, true, 'Transmitting…');
+      setTimeout(() => { if (btn.classList.contains('busy')) $(m.state).textContent = 'Waiting for reply…'; }, 400);
+      const done = () => { radioBusy(m, false); flushSpeech(); };
+      Promise.resolve().then(m.send).then(done, done);
     });
+  }
+  const keyRadio = () => keyUp('cmd');
+  /** The 360 update goes out on the radio, dispatch copies, and the command board opens. */
+  function send360() {
+    const me = (S.units.find(u => u.mine) || {}).name || 'Engine 1';
+    S.report360 = $('#report360').value.trim(); S.did360 = true;
+    const reply = `${me}, ${S.dispatchName} copies.`;
+    $('#ptt2State').textContent = reply;
+    if (settings().voice === 'on') say(reply);
+    return new Promise(res => setTimeout(() => { res(); toCommand(); }, 1200));
   }
   function setRadioMode() {
     const voice = Speech.available();
-    $('#assignText').readOnly = voice;
-    $('#sendAssign').hidden = voice;
+    ['#report', '#report360', '#corrText', '#assignText'].forEach(id => { $(id).readOnly = voice; $(id).placeholder = ''; });
+    ['#sendAssign', '#submitBtn', '#sendCorr', '#finishWalkBtn'].forEach(id => $(id).hidden = voice);
     $('#ptt4Help').textContent = voice ? 'Tap the mic, talk, then tap it again to send.' : 'This browser has no speech recognition. Type the transmission and tap Send.';
+    $('#reportLabel').textContent = voice ? 'What the app heard' : 'Your report';
   }
   function radio(from, text, kind) {
     if (kind !== 'me') text = radioText(text);
@@ -1825,7 +1857,7 @@ const FX = (() => {
       const here = u.mine || u.eta * 60 <= sec;
       const cls = ['u']; let eta;
       if (u.mine) { cls.push('mine'); eta = isBC() && !(S.bc && S.bc.transfer) ? 'On scene' : 'Command'; }
-      else if (!here) { cls.push('waiting'); eta = Math.ceil((u.eta * 60 - sec) / 60) + ' min'; }
+      else if (!here) { cls.push('waiting'); eta = clockOf(u.eta * 60 - sec); }
       else { cls.push('tap'); if (u.task) cls.push('assigned'); eta = u.task ? 'Assigned' : STATUS_TEXT[u.status] || 'On scene'; }
       const meta = [TYPE_LABEL[u.type] || u.type, u.staff ? u.staff + ' staffed' : ''].filter(Boolean).join(' · ');
       return `<div class="${cls.join(' ')}"><span><strong>${esc(u.name)}</strong> <span class="st">${esc(meta)}</span></span><span class="eta">${esc(eta)}</span>${u.task ? `<span class="task">${esc(u.task)}</span>` : ''}</div>`;
@@ -1847,7 +1879,7 @@ const FX = (() => {
     $('#assignNote').hidden = true;
     if (isBC()) {
       try {
-        const r = await Server.call('radio', { scenarioId: S.sc.scenarioId, text, minute: Math.floor(elapsed() / 60) });
+        const r = await Server.call('radio', { scenarioId: S.sc.scenarioId, text, minute: elapsed() / 60 });
         if (r.note) { $('#assignNote').hidden = false; $('#assignNote').textContent = r.note; return; }
         const me = (S.units.find(u => u.mine) || {}).name;
         radio(S.bc && S.bc.transfer ? S.b.command + ' Command' : me, text, 'me');
@@ -1860,7 +1892,7 @@ const FX = (() => {
       return;
     }
     try {
-      const r = await Server.call('assign', { scenarioId: S.sc.scenarioId, text, minute: Math.floor(elapsed() / 60) });
+      const r = await Server.call('assign', { scenarioId: S.sc.scenarioId, text, minute: elapsed() / 60 });
       if (r.note) { $('#assignNote').hidden = false; $('#assignNote').textContent = r.note; return; }
       radio(S.b.command + ' Command', text, 'me');
       if (r.reply) { radio(r.from, r.reply, 'unit'); speakQ(r.reply, r.from); }
@@ -1978,7 +2010,7 @@ const FX = (() => {
     function finish() { const cb = onDone; onDone = null; if (cb) cb(target ? target.value : ''); }
     /** done(text): called once when the member taps the mic again and the last words are in. */
     function toggle(button, stateEl, textarea, noteEl, done) {
-      if (want && btn === button) { stop(); if (onDone) { setUI(false, 'Transmitting…'); if (button.id === 'ptt4Btn') button.classList.add('busy'); setTimeout(finish, 800); } return; }
+      if (want && btn === button) { stop(); if (onDone) { setUI(false, 'Transmitting…'); button.classList.add('busy'); setTimeout(finish, 800); } return; }
       stop(); onDone = null;
       if (!SR) { noteEl.hidden = false; noteEl.textContent = 'This browser has no built-in speech recognition. Use Chrome on Android or Safari on iPhone, or type your report.'; return; }
       btn = button; label = stateEl; target = textarea; base = textarea.value ? textarea.value.replace(/\s*$/, ' ') : ''; finals = '';
@@ -2363,7 +2395,7 @@ const FX = (() => {
       <td data-label="Type"><select class="w-sel" data-ap="${i}" data-k="type" aria-label="Unit type">${UNIT_TYPES.map(t => `<option value="${t}"${t === a.type ? ' selected' : ''}>${TYPE_LABEL[t]}</option>`).join('')}</select></td>
       <td data-label="Station"><select class="w-sel" data-ap="${i}" data-k="station" aria-label="Station">${opts.map(o => `<option value="${esc(o)}"${o === a.station ? ' selected' : ''}>${o ? esc(o) : 'None'}</option>`).join('')}</select></td>
       <td data-label="Staffed"><input type="number" min="0" max="20" step="1" data-ap="${i}" data-k="staff" value="${a.staff}" aria-label="Staffing"></td>
-      <td data-label="Minutes"><input type="number" min="1" max="90" step="1" data-ap="${i}" data-k="minutes" value="${a.minutes}" aria-label="Minutes to arrive"></td>
+      <td data-label="Minutes"><input type="number" min="0.5" max="90" step="0.5" data-ap="${i}" data-k="minutes" value="${a.minutes}" aria-label="Minutes to arrive"></td>
       <td class="chk" data-label="In service"><input type="checkbox" data-ap="${i}" data-k="inService"${a.inService ? ' checked' : ''} aria-label="In service"></td>
       <td><button class="btn quiet small" type="button" data-delap="${i}">Remove</button></td></tr>`;
     }).join('') || '<tr><td colspan="7" class="muted">No units yet.</td></tr>';
@@ -2390,7 +2422,7 @@ const FX = (() => {
       if (!n) errs.push(`Unit ${i + 1} needs a radio name.`);
       else if (seen[n.toLowerCase()]) errs.push(`"${n}" is listed twice.`);
       seen[n.toLowerCase()] = true;
-      if (!(a.minutes >= 1 && a.minutes <= 90)) errs.push(`${n || 'Unit ' + (i + 1)}: minutes to arrive must be 1 to 90.`);
+      if (!(a.minutes >= 0.5 && a.minutes <= 90)) errs.push(`${n || 'Unit ' + (i + 1)}: minutes to arrive must be 0.5 to 90, in half-minute steps (4, 4.5, 5…).`);
       if (!(a.staff >= 0 && a.staff <= 20)) errs.push(`${n || 'Unit ' + (i + 1)}: staffing must be 0 to 20.`);
     });
     const st = {};
@@ -2425,7 +2457,7 @@ const FX = (() => {
       const t = e.target, d = U.data; if (!d) return;
       if (t.id === 'uDispatch') d.dispatch = t.value;
       else if (t.dataset.st) d.stations[+t.dataset.st][t.dataset.k] = t.value;
-      else if (t.dataset.ap && t.dataset.k !== 'inService') { const a = d.apparatus[+t.dataset.ap]; a[t.dataset.k] = t.type === 'number' ? Math.round(+t.value) : t.value; if (t.dataset.k === 'type') drawPlans(); }
+      else if (t.dataset.ap && t.dataset.k !== 'inService') { const a = d.apparatus[+t.dataset.ap]; a[t.dataset.k] = t.type === 'number' ? (t.dataset.k === 'minutes' ? Math.round(+t.value * 2) / 2 : Math.round(+t.value)) : t.value; if (t.dataset.k === 'type') drawPlans(); }
       else if (t.dataset.pl) { d.plans[t.dataset.pl][t.dataset.t] = Math.max(0, Math.round(+t.value) || 0); drawPlansKeepFocus(t); }
       dirty();
     });
@@ -2667,20 +2699,21 @@ const FX = (() => {
     $('#erSkip').onclick = skipEnroute;
     $('#logToggle').onclick = () => { const open = $('#debriefLog').hidden; $('#debriefLog').hidden = !open; $('#logToggle').setAttribute('aria-expanded', String(open)); $('#logToggle').textContent = open ? 'Hide the radio log' : 'Review every transmission'; };
     $('#roleSel').addEventListener('click', e => { const b = e.target.closest('[data-role]'); if (!b) return; store.set('role', b.dataset.role); drawRole(); });
+    $('#rigSel').addEventListener('change', e => { store.set(settings().role === 'battalion' ? 'bcUnit' : 'unit', e.target.value); drawRole(); });
     $('#replayBtn').onclick = () => S.sc && say(S.sc.dispatch);
-    $('#pttBtn').onclick = () => Speech.toggle($('#pttBtn'), $('#pttState'), $('#report'), $('#micNote'));
-    $('#ptt2Btn').onclick = () => Speech.toggle($('#ptt2Btn'), $('#ptt2State'), $('#report360'), $('#micNote'));
+    $('#pttBtn').onclick = () => keyUp('report');
+    $('#ptt2Btn').onclick = () => keyUp('r360');
     $('#submitBtn').onclick = submitReport;
     $('#correctBtn').onclick = () => { Speech.stop(); $('#askChoice').hidden = true; $('#corrBox').hidden = false; $('#corrText').value = ''; $('#corrNote').hidden = true;
       $('#corrHint').textContent = `Correct only what dispatch got wrong, for example: "${S.dispatchName} from ${settings().unit}, correction, this is a small building."`; $('#corrText').focus(); };
     $('#cancelCorr').onclick = () => { Speech.stop(); showChoice(); };
     $('#sendCorr').onclick = sendCorrection;
-    $('#ptt3Btn').onclick = () => Speech.toggle($('#ptt3Btn'), $('#ptt3State'), $('#corrText'), $('#corrNote'));
+    $('#ptt3Btn').onclick = () => keyUp('corr');
     $('#do360').onclick = () => { Speech.stop(); $('#ask360').hidden = true; S.did360 = true; go('walk'); walk('A'); };
     $('#skip360').onclick = () => { Speech.stop(); $('#ask360').hidden = true; S.did360 = false; toCommand(); };
     $('#sideBtns').addEventListener('click', e => { const b = e.target.closest('[data-side]'); if (b) walk(b.dataset.side); });
     $('#nextSideBtn').onclick = () => walk($('#nextSideBtn').dataset.to);
-    $('#finishWalkBtn').onclick = toCommand;
+    $('#finishWalkBtn').onclick = () => { if ($('#report360').value.trim()) send360(); else toCommand(); };
     $('#sendAssign').onclick = sendAssign;
     $('#endIncident').onclick = finish;
     $('#skipAhead').onclick = skipAhead;
