@@ -203,6 +203,7 @@ textarea.report { font-family: var(--f-mono); font-size: .98rem; line-height: 1.
 .radio .m.me { background: var(--accent-soft); border-color: var(--accent); }
 .radio .m.note { background: var(--warn-soft); border-color: var(--warn); }
 .radio .m.ic { border-left: 5px solid var(--accent); }
+#modelText { white-space: pre-line; }
 .checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .checklist li { display: flex; gap: 10px; align-items: baseline; padding: 6px 10px; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); }
 .checklist li::before { content: "○"; font-weight: 700; color: var(--muted); }
@@ -1210,19 +1211,40 @@ const FX = (() => {
         } else if (e.kind === 'smokeHeavy') { c.fillStyle = 'rgba(48,46,44,.72)'; c.fillRect(x, y, bw, bh); }
         else if (e.kind === 'smokeLight') { c.fillStyle = 'rgba(170,170,166,.38)'; c.fillRect(x, y, bw, bh); }
       }
-      if (d.victimId) {
-        const o = d.openings.find(o => o.id === d.victimId); if (!o) return;
-        const x = o.x * this.w, y = o.y * this.h, bw = o.w * this.w, bh = o.h * this.h;
-        c.save(); c.beginPath(); c.rect(x, y, bw, bh); c.clip();
-        const cx = x + bw * 0.45, base = y + bh;
-        c.fillStyle = '#1b1d20';
-        c.beginPath(); c.ellipse(cx, base, bw * 0.3, bh * 0.36, 0, Math.PI, 0); c.fill();
-        c.beginPath(); c.arc(cx, base - bh * 0.5, bw * 0.13, 0, 7); c.fill();
-        const a = -0.6 + Math.sin(this.t * 6) * 0.45;
-        c.lineWidth = bw * 0.08; c.lineCap = 'round'; c.strokeStyle = '#1b1d20';
-        c.beginPath(); c.moveTo(cx + bw * 0.18, base - bh * 0.3); c.lineTo(cx + bw * 0.18 + Math.cos(a) * bh * 0.45, base - bh * 0.3 + Math.sin(a) * bh * 0.45); c.stroke();
-        c.restore();
-      }
+    }
+    /* A person at the window: skin, a bright shirt, a white rim so it reads through smoke, and a waving arm. Drawn on top of the smoke. */
+    drawVictim() {
+      const d = this.data, c = this.ctx;
+      if (!d || !d.victimId) return;
+      const o = d.openings.find(o => o.id === d.victimId); if (!o) return;
+      const x = o.x * this.w, y = o.y * this.h, bw = o.w * this.w, bh = o.h * this.h;
+      const s = Math.min(bw, bh);
+      const cx = x + bw * 0.45, base = y + bh;
+      const headR = s * 0.16, headY = base - bh * 0.56;
+      const a = -1.1 + Math.sin(this.t * 6) * 0.5;               // waving arm angle
+      const shoulder = { x: cx + s * 0.2, y: base - bh * 0.34 };
+      const hand = { x: shoulder.x + Math.cos(a) * bh * 0.5, y: shoulder.y + Math.sin(a) * bh * 0.5 };
+      const body = () => { c.beginPath(); c.ellipse(cx, base, bw * 0.3, bh * 0.4, 0, Math.PI, 0); c.closePath(); };
+      const head = () => { c.beginPath(); c.arc(cx, headY, headR, 0, 7); };
+      const arm = () => { c.beginPath(); c.moveTo(shoulder.x, shoulder.y); c.lineTo(hand.x, hand.y); };
+      c.save();
+      c.beginPath(); c.rect(x - bw * 0.1, y - bh * 0.6, bw * 1.2, bh * 1.6); c.clip();
+      // glow behind the figure
+      const g = c.createRadialGradient(cx, base - bh * 0.4, 0, cx, base - bh * 0.4, Math.max(bw, bh) * 0.75);
+      g.addColorStop(0, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = g; c.fillRect(x - bw, y - bh, bw * 3, bh * 3);
+      // white rim, then dark edge, then fill
+      c.lineJoin = 'round'; c.lineCap = 'round';
+      c.strokeStyle = '#ffffff'; c.lineWidth = Math.max(4, s * 0.12);
+      body(); c.stroke(); head(); c.stroke(); c.lineWidth = Math.max(9, s * 0.2); arm(); c.stroke();
+      c.strokeStyle = '#1b1d20'; c.lineWidth = Math.max(2, s * 0.05);
+      body(); c.stroke(); head(); c.stroke(); c.lineWidth = Math.max(6, s * 0.13); arm(); c.stroke();
+      c.fillStyle = '#ffd23f'; body(); c.fill();                  // bright yellow shirt
+      c.strokeStyle = '#ffd23f'; c.lineWidth = Math.max(4, s * 0.08); arm(); c.stroke();
+      c.fillStyle = '#e8b48a'; head(); c.fill();                   // face
+      c.beginPath(); c.arc(hand.x, hand.y, Math.max(3, s * 0.07), 0, 7); c.fill();
+      c.fillStyle = '#3a2a1e'; c.beginPath(); c.arc(cx, headY - headR * 0.25, headR, Math.PI, 0); c.fill();   // hair
+      c.restore();
     }
     draw() {
       const c = this.ctx; c.clearRect(0, 0, this.w, this.h);
@@ -1238,6 +1260,7 @@ const FX = (() => {
         }
       }
       c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+      this.drawVictim();
       if (this.data.labels) this.drawLabels();
     }
     drawLabels() {
@@ -1532,8 +1555,8 @@ const FX = (() => {
     const cmd = S.b.command + ' Command', me = (S.units.find(u => u.mine) || {}).name || 'Battalion 1';
     $('#cmdBadge').textContent = me + ' · side Alpha';
     $('#assignHead').textContent = 'Radio';
-    $('#assignText').placeholder = `${S.dispatchName} from ${me}, ${me} is assuming ${cmd}…`;
-    $('#assignHint').textContent = `Take command from ${S.bc.ic}: "${S.dispatchName} from ${me}, ${me} is assuming ${cmd}," confirm the strategy, and confirm each unit's task, location and objective. Then ask for the 10-minute timer, call a greater alarm if this fire needs one with a level two staging area and frequency, and assign units as they arrive.`;
+    $('#assignText').placeholder = `${cmd} from ${me}`;
+    $('#assignHint').textContent = `1. Contact command: "${cmd} from ${me}." 2. After "go ahead," confirm every unit's task, location and objective from ${S.bc.ic}'s radio traffic, and the strategy. ${S.bc.ic} corrects anything you got wrong. 3. Then tell dispatch: "${S.dispatchName} from ${me}, ${me} is assuming ${cmd}." After that: the 10-minute timer, a greater alarm with level two staging and a frequency if this fire needs it, and assignments as units arrive.`;
     $('#assignNote').hidden = true;
     radio('', `You're on scene. ${S.bc.ic} has ${cmd}.`, 'note');
     showScene('sceneCmd', 'A');
@@ -1545,7 +1568,9 @@ const FX = (() => {
     if (!on || !S.bc) return;
     const b = S.bc;
     const items = [
-      [b.transfer, 'Command transfer: strategy and every unit\'s TLO', b.transfer ? 'You have command' : 'From ' + b.ic],
+      [b.contact, 'Contact command', b.contact ? 'Go ahead' : S.b.command + ' Command'],
+      [b.total && b.confirmed === b.total, 'Confirm every unit\'s TLO and the strategy', (b.confirmed || 0) + ' of ' + (b.total || 0)],
+      [b.transfer, 'Assume command with dispatch', b.transfer ? 'You have command' : ''],
       [b.timerAt != null, '10-minute timer', b.timerAt != null ? 'Started' : ''],
       [b.alarm > 1, 'Greater alarm, if this fire needs one', b.alarm > 1 ? ['', '', '2nd', '3rd', '4th'][b.alarm] + ' alarm' : ''],
       [!!b.staging, 'Level two staging area', b.staging || ''],
@@ -1760,7 +1785,7 @@ const FX = (() => {
 
   /* ---------- debrief ---------- */
   const AREA = { order: 'Order', terms: 'Approved terms', missing: 'Missing part', decision: 'Tactical call', dispatch: 'Dispatch readback', command: 'Assignment',
-    transfer: 'Command transfer', strategy: 'Strategy', timer: '10-minute timer', alarm: 'Greater alarm', staging: 'Level two staging' };
+    transfer: 'Command transfer', tlo: 'Unit TLOs', strategy: 'Strategy', timer: '10-minute timer', alarm: 'Greater alarm', staging: 'Level two staging' };
   const ICON = { fail: '!', warn: '?', pass: '✓', info: 'i' };
   async function finish() {
     Speech.stop();
