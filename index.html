@@ -1715,7 +1715,7 @@ const FX = (() => {
     $('#assignText').placeholder = `Engine 2 from ${cmd}, forward lay to Engine 1 for water supply.`;
     const mine = (S.units.find(u => u.mine) || {}).name || 'Engine 1';
     const ex = S.units.find(u => !u.mine && u.type !== 'engine' && u.type !== 'battalion') || S.units.find(u => !u.mine) || { name: 'Engine 2' };
-    $('#assignHint').textContent = `Call the unit, then give the task, location, and objective: "${ex.name} from ${cmd}, stretch a 1¾ from ${mine} to side Alpha, floor 1, for primary search." Level-one engines can take a forward, reverse, split, or driveway lay, water forward, or relay pump.`;
+    $('#assignHint').textContent = `Call the unit, then give the task, location, and objective: "${ex.name} from ${cmd}, stretch a 1¾ from ${mine} to side Alpha, floor 1, for primary search." Level-one engines can take a forward, reverse, split, or driveway lay, water forward, or relay pump. "Command" by itself is fine in place of "${cmd}."`;
     $('#assignNote').hidden = true;
     if (!S.radio.length) radio(S.dispatchName, `${cmd}, ${S.dispatchName} copies. Units are arriving.`, 'disp');
     showScene('sceneCmd', 'A');
