@@ -529,6 +529,7 @@ img { max-width: 100%; }
       <label class="f">Stories <select id="bStories"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select></label>
       <label class="f">Occupancy <select id="bCat"><option value="residential">Single family residential</option><option value="multifamily">Multi-family residential</option><option value="commercial">Commercial</option><option value="industrial">Industrial</option><option value="mixed">Mixed use</option></select></label>
       <label class="f">Construction <input type="text" id="bCons" placeholder="Type V wood frame"></label>
+      <label class="f">Roof / structure <select id="bRoof"><option value="">Standard roof</option><option value="qdeck">Metal Q-decking</option><option value="tile">Tile roof</option><option value="bowstring">Bowstring truss</option><option value="roofover">Roof over</option><option value="mobilehome">Mobile home</option></select><span class="hint">Vertical ventilation is a no-go on all of these except a standard roof (Agency &gt; Tactics).</span></label>
       <label class="f">Front width and depth (ft) <span class="row" style="flex-wrap:nowrap"><input type="number" id="bW" min="10" placeholder="Width"><input type="number" id="bD" min="10" placeholder="Depth"></span><span class="hint">Used to judge how far fire spreads. Estimates are fine.</span></label>
     </div>
   </div>
@@ -593,6 +594,10 @@ img { max-width: 100%; }
   <div class="panel">
     <h3>Response plans</h3>
     <p class="muted" style="font-size:.92rem">How many of each type go on each level. The member's own unit counts toward the initial assignment. Turn off Balance if you send the full package up front.</p>
+    <div class="fieldset"><span class="eyebrow">Plan for</span><div class="chips" id="planSets" role="group" aria-label="Plan for">
+      <button type="button" data-pset="all">All buildings</button><button type="button" data-pset="residential">Residential</button><button type="button" data-pset="commercial">Commercial</button></div>
+      <span class="hint" id="planSetHint"></span></div>
+    <div class="row" id="planSetActions"></div>
     <div class="scroll-x"><table class="t edit" id="planTable"></table></div>
     <p class="note warn" id="planWarn" hidden></p>
   </div>
@@ -622,6 +627,12 @@ img { max-width: 100%; }
       <div class="fieldset"><span class="eyebrow">These objectives need a lay (forward, reverse, split, driveway, water forward, relay)</span><div class="chips" data-tk="layFor" data-opts="need"></div></div>
       <div class="fieldset"><span class="eyebrow">These units must name the engine they pull a line from</span><div class="chips" data-tk="sourceFor" data-opts="type"></div></div>
       <div class="fieldset"><span class="eyebrow">Floor rules</span><div class="scroll-x"><table class="t" id="floorTable"></table></div><span class="hint">A wrong floor for fire control is a miss; for the others it's a warning. Pick none for no floor rule.</span></div></div>
+    <div class="panel"><h3>Ventilation</h3>
+      <div class="fieldset"><span class="eyebrow">Vertical ventilation is a no-go for</span><div class="chips" data-tk="noVert" data-opts="novert"></div>
+        <span class="hint">When any of these apply, assigning vertical ventilation is graded wrong. Horizontal and positive pressure are still right. Roof types are set on each building.</span></div></div>
+    <div class="panel"><h3>Divisions</h3>
+      <div class="grid2"><label class="f">Divisionalize when more companies than this are on scene<select data-tn="divAt"></select><span class="hint">At minimum a division on the fire side, for example Alpha Division, or the fire floor in a building of 3+ stories.</span></label>
+      <label class="f">Staging in buildings of 3 or more stories<select data-tn="stagingFloors"></select><span class="hint">For example "staging on floor 3" for a fire on floor 5.</span></label></div></div>
     <div class="panel"><h3>How units report in</h3><div class="grid2" id="arrivalGrid"></div></div>
     <div class="panel"><h3>Points</h3><p class="muted" style="font-size:.92rem">Taken off a score of 100.</p><div class="grid2" id="pointsGrid"></div></div>
   </div>
@@ -1656,7 +1667,8 @@ const FX = (() => {
       [b.timerAt != null, '10-minute timer', b.timerAt != null ? 'Started' : ''],
       [b.alarm > 1, 'Greater alarm, if this fire needs one', b.alarm > 1 ? ['', '', '2nd', '3rd', '4th'][b.alarm] + ' alarm' : ''],
       [!!b.staging, 'Level two staging area', b.staging || ''],
-      [!!b.freq, 'Staging response frequency', b.freq || '']];
+      [!!b.freq, 'Staging response frequency', b.freq || ''],
+      [(b.divisions || []).length > 0, 'Divisions as companies build up, at least the fire side', (b.divisions || []).join(', ')]];
     $('#bcList').innerHTML = items.map(([done, label, note]) => `<li class="${done ? 'done' : ''}"><span>${esc(label)}</span>${note ? `<small>${esc(note)}</small>` : ''}</li>`).join('');
   }
   /* How the radio says hose sizes out loud: "inch and three quarter", not "one three-quarter inch". */
@@ -1961,14 +1973,14 @@ const FX = (() => {
 
   /* ---------- debrief ---------- */
   const AREA = { order: 'Order', terms: 'Approved terms', missing: 'Missing part', decision: 'Tactical call', dispatch: 'Dispatch readback', command: 'Assignment',
-    transfer: 'Command transfer', tlo: 'Unit TLOs', strategy: 'Strategy', timer: '10-minute timer', alarm: 'Greater alarm', staging: 'Level two staging' };
+    transfer: 'Command transfer', tlo: 'Unit TLOs', division: 'Divisions', strategy: 'Strategy', timer: '10-minute timer', alarm: 'Greater alarm', staging: 'Level two staging' };
   const ICON = { fail: '!', warn: '?', pass: '✓', info: 'i' };
   async function finish() {
     Speech.stop();
     go('debrief');
     $('#debriefBody').hidden = true; $('#grading').hidden = false; $('#gradeErrRow').hidden = true;
     try {
-      S.out = await Server.call('grade', { scenarioId: S.sc.scenarioId, report: S.reportText, report360: S.report360 || (S.did360 ? $('#report360').value.trim() : ''),
+      S.out = await Server.call('grade', { scenarioId: S.sc.scenarioId, minute: elapsed() / 60, report: S.reportText, report360: S.report360 || (S.did360 ? $('#report360').value.trim() : ''),
         did360: S.did360, sides: [...S.seen].join(''), seconds: S.tReport, command: !!S.cmd });
     } catch (e) {
       if (e.code === 'auth') return expired();
@@ -2325,7 +2337,7 @@ const FX = (() => {
     const check = locIssues().map(r => tabName(r.s) + ': ' + r.src + (r.check ? ', ' + r.check : '')).join('; ') + (A.addr && A.addr.found && c ? '; address ' + distTxt(meters(c, A.addr)) + ' from photos' : '');
     const location = { lat: at ? +at.lat.toFixed(6) : null, lng: at ? +at.lng.toFixed(6) : null, check, confirmed: true };
     return { location, approach: { src: A.photos.E, x: +A.point.x.toFixed(4), y: +A.point.y.toFixed(4) }, b: { id, dept: A.prev ? A.prev.dept : S.session.dept.id, name: v('bName'), address: addr, city: v('bCity'), state: v('bState').toUpperCase(), zip: v('bZip'), command: v('bCmd') || street.charAt(0).toUpperCase() + street.slice(1), sqft, stories, category: cat,
-      typeCategories: [cat].concat(cat === 'multifamily' ? ['residential'] : []), typeLabel: catName(cat), construction: v('bCons'), planW: W, planD: D, hazards, sides } };
+      typeCategories: [cat].concat(cat === 'multifamily' ? ['residential'] : []), typeLabel: catName(cat), construction: v('bCons'), roof: $('#bRoof').value, planW: W, planD: D, hazards, sides } };
   }
   async function saveBuilding() {
     const { b, errs, location, approach } = collectBuilding();
@@ -2364,7 +2376,7 @@ const FX = (() => {
     A.photos = {}; A.boxes = { A: [], B: [], C: [], D: [] }; A.side = 'A'; A.sel = -1; A.point = null; A.gps = {}; A.addr = null; A.editId = null; A.keep = {}; A.prev = null;
     $('#locConfirm').checked = false; $('#adminErr').hidden = true;
     ['bName', 'bAddr', 'bCity', 'bState', 'bZip', 'bCmd', 'bSqft', 'bCons', 'bW', 'bD'].forEach(id => $('#' + id).value = '');
-    $('#bStories').value = '2'; $('#bCat').value = 'residential';
+    $('#bStories').value = '2'; $('#bCat').value = 'residential'; $('#bRoof').value = '';
     $$('[data-hz]').forEach(x => { x.checked = false; $(`[data-hzside="${x.dataset.hz}"]`).value = ''; $(`[data-hznote="${x.dataset.hz}"]`).value = ''; });
   }
   const canEdit = b => !b.sample && (S.session.dept.id === 'ANY' || b.dept === S.session.dept.id);
@@ -2373,7 +2385,7 @@ const FX = (() => {
     resetForm();
     A.editId = b.id; A.prev = { dept: b.dept, lat: b.lat, lng: b.lng };
     $('#bName').value = b.name || ''; $('#bAddr').value = b.address || ''; $('#bCity').value = b.city || ''; $('#bState').value = b.state || ''; $('#bZip').value = b.zip || ''; $('#bCmd').value = b.command || ''; $('#bSqft').value = b.sqft || '';
-    $('#bStories').value = String(b.stories || 2); $('#bCat').value = b.category || 'residential'; $('#bCons').value = b.construction || '';
+    $('#bStories').value = String(b.stories || 2); $('#bCat').value = b.category || 'residential'; $('#bCons').value = b.construction || ''; $('#bRoof').value = b.roof || '';
     $('#bW').value = b.planW || ''; $('#bD').value = b.planD || '';
     for (const h of b.hazards || []) { const x = $(`[data-hz="${h.type}"]`); if (!x) continue; x.checked = true; $(`[data-hzside="${h.type}"]`).value = h.side || ''; $(`[data-hznote="${h.type}"]`).value = h.note || ''; }
     for (const s of SIDES) A.boxes[s] = (b.sides[s].openings || []).map(o => ({ type: o.type, fl: o.type === 'roof' ? 'R' : String(o.fl), x: +o.x, y: +o.y, w: +o.w, h: +o.h }));
@@ -2457,17 +2469,29 @@ const FX = (() => {
       <td><button class="btn quiet small" type="button" data-delap="${i}">Remove</button></td></tr>`;
     }).join('') || '<tr><td colspan="7" class="muted">No units yet.</td></tr>';
   }
+  /* Response plans: one for all buildings, and optional Residential (single and multi-family) and Commercial (commercial, industrial, mixed use) plans. */
+  const PSET_HINT = { all: 'Used for every building unless a residential or commercial plan is set.', residential: 'Single-family and multi-family buildings.', commercial: 'Commercial, industrial, and mixed-use buildings.' };
+  const curPlans = () => { const d = U.data, k = U.pset || 'all'; return k === 'all' ? d.plans : (d.plansBy || {})[k]; };
   function drawPlans() {
     const d = U.data;
+    d.plansBy = d.plansBy || { residential: null, commercial: null };
+    const k0 = U.pset || 'all', P = curPlans();
+    $$('#planSets [data-pset]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pset === k0)));
+    $('#planSetHint').textContent = PSET_HINT[k0];
+    $('#planSetActions').innerHTML = k0 === 'all' ? '' : P
+      ? `<button class="btn quiet small" type="button" data-psetoff="${k0}">Stop using a separate ${k0} plan</button>`
+      : `<span class="muted">${k0 === 'residential' ? 'Residential' : 'Commercial'} buildings use the all-buildings plan.</span><button class="btn small" type="button" data-pseton="${k0}">Set a ${k0} plan</button>`;
+    $('#planTable').hidden = !P;
+    if (!P) { $('#planWarn').hidden = true; return; }
     const have = Object.fromEntries(UNIT_TYPES.map(t => [t, d.apparatus.filter(a => a.inService && a.type === t).length]));
     $('#planTable').innerHTML = `<thead><tr><th>Level</th><th>Use</th>${UNIT_TYPES.map(t => `<th>${TYPE_LABEL[t]}</th>`).join('')}</tr></thead><tbody>` +
       PLAN_LEVELS.map(([k, label]) => {
-        const p = d.plans[k];
+        const p = P[k];
         return `<tr class="${p ? '' : 'off'}"><td class="lvl"><strong>${label}</strong></td>
           <td class="chk">${k === 'initial' ? '' : `<input type="checkbox" data-use="${k}"${p ? ' checked' : ''} aria-label="Use ${label}">`}</td>
           ${UNIT_TYPES.map(t => `<td><input type="number" min="0" max="30" step="1" data-pl="${k}" data-t="${t}" value="${p ? p[t] || 0 : 0}"${p ? '' : ' disabled'} aria-label="${label} ${TYPE_LABEL[t]}"></td>`).join('')}</tr>`;
       }).join('') + `</tbody><tfoot><tr><td colspan="2">In service</td>${UNIT_TYPES.map(t => `<td>${have[t]}</td>`).join('')}</tr></tfoot>`;
-    const short = UNIT_TYPES.map(t => [t, PLAN_LEVELS.reduce((n, [k]) => n + (d.plans[k] ? +d.plans[k][t] || 0 : 0), 0), have[t]]).filter(([, need, h]) => need > h);
+    const short = UNIT_TYPES.map(t => [t, PLAN_LEVELS.reduce((n, [k]) => n + (P[k] ? +P[k][t] || 0 : 0), 0), have[t]]).filter(([, need, h]) => need > h);
     $('#planWarn').hidden = !short.length;
     $('#planWarn').textContent = short.length ? 'All levels together call for ' + short.map(([t, need, h]) => `${need} ${TYPE_LABEL[t].toLowerCase()}${need > 1 ? 's' : ''} (${h} in service)`).join(', ') + '. On a big fire dispatch sends what it has.' : '';
   }
@@ -2492,6 +2516,7 @@ const FX = (() => {
     });
     if (!d.apparatus.some(a => a.inService)) errs.push('Add at least one unit that is in service.');
     if (!UNIT_TYPES.some(t => +d.plans.initial[t] > 0)) errs.push('The initial assignment needs at least one unit.');
+    ['residential', 'commercial'].forEach(o => { const p = (d.plansBy || {})[o]; if (p && !UNIT_TYPES.some(t => +(p.initial || {})[t] > 0)) errs.push('The ' + o + ' initial assignment needs at least one unit.'); });
     return errs;
   }
   async function saveUnits() {
@@ -2515,15 +2540,21 @@ const FX = (() => {
       if (t.id === 'uDispatch') d.dispatch = t.value;
       else if (t.dataset.st) d.stations[+t.dataset.st][t.dataset.k] = t.value;
       else if (t.dataset.ap && t.dataset.k !== 'inService') { const a = d.apparatus[+t.dataset.ap]; a[t.dataset.k] = t.type === 'number' ? (t.dataset.k === 'minutes' ? Math.round(+t.value * 2) / 2 : Math.round(+t.value)) : t.value; if (t.dataset.k === 'type') drawPlans(); }
-      else if (t.dataset.pl) { d.plans[t.dataset.pl][t.dataset.t] = Math.max(0, Math.round(+t.value) || 0); drawPlansKeepFocus(t); }
+      else if (t.dataset.pl) { curPlans()[t.dataset.pl][t.dataset.t] = Math.max(0, Math.round(+t.value) || 0); drawPlansKeepFocus(t); }
       dirty();
     });
     body.addEventListener('change', e => {
       const t = e.target, d = U.data; if (!d) return;
       if (t.dataset.ap && t.dataset.k === 'inService') { d.apparatus[+t.dataset.ap].inService = t.checked; t.closest('tr').classList.toggle('off', !t.checked); drawPlans(); }
-      else if (t.dataset.use) { d.plans[t.dataset.use] = t.checked ? Object.fromEntries(UNIT_TYPES.map(x => [x, 0])) : null; drawPlans(); }
+      else if (t.dataset.use) { curPlans()[t.dataset.use] = t.checked ? Object.fromEntries(UNIT_TYPES.map(x => [x, 0])) : null; drawPlans(); }
       else if (t.dataset.st && t.dataset.k === 'name') drawApparatus();
       dirty();
+    });
+    body.addEventListener('click', e => {
+      const ps = e.target.closest('[data-pset]'), on = e.target.closest('[data-pseton]'), off = e.target.closest('[data-psetoff]');
+      if (ps && U.data) { U.pset = ps.dataset.pset; drawPlans(); return; }
+      if (on && U.data) { U.data.plansBy[on.dataset.pseton] = JSON.parse(JSON.stringify(U.data.plans)); drawPlans(); dirty(); toast('Started from the all-buildings plan. Change it as needed.'); return; }
+      if (off && U.data) { U.data.plansBy[off.dataset.psetoff] = null; drawPlans(); dirty(); return; }
     });
     body.addEventListener('click', e => {
       const d = U.data; if (!d) return;
@@ -2552,11 +2583,13 @@ const FX = (() => {
   const PCT_SEL = {
     defensivePct: { from: 1, to: 100 }, fullPct: { from: 1, to: 100 },
     extFrom: { from: 1, to: 100, off: [0, 'Off'] }, extTo: { from: 1, to: 100 },
-    backupPct: { from: 1, to: 100, off: [101, 'Never (only with check for extension)'] } };
+    backupPct: { from: 1, to: 100, off: [101, 'Never (only with check for extension)'] },
+    divAt: { from: 2, to: 15, off: [0, 'Off'], fmt: n => 'More than ' + n + ' companies' },
+    stagingFloors: { from: 1, to: 5, off: [0, 'Off'], fmt: n => n + ' floor' + (n > 1 ? 's' : '') + ' below the fire' } };
   function pctOptions(k, cur) {
     const c = PCT_SEL[k], out = [];
     if (c.off) out.push(`<option value="${c.off[0]}"${cur === c.off[0] ? ' selected' : ''}>${c.off[1]}</option>`);
-    for (let n = c.from; n <= c.to; n++) out.push(`<option value="${n}"${cur === n ? ' selected' : ''}>${n}%</option>`);
+    for (let n = c.from; n <= c.to; n++) out.push(`<option value="${n}"${cur === n ? ' selected' : ''}>${c.fmt ? c.fmt(n) : n + '%'}</option>`);
     return out.join('');
   }
   function drawBands() {
@@ -2576,7 +2609,8 @@ const FX = (() => {
   const LINE_UI = { '1.75': '1¾"', '2.5': '2½"', standpipe: 'Standpipe', bulkload: 'Bulk load', extended: 'Extended attack', deckgun: 'Deck gun', blitz: 'Blitz' };
   const CAT_UI = { residential: 'Single family residential', multifamily: 'Multi-family residential', commercial: 'Commercial', industrial: 'Industrial', mixed: 'Mixed use' };
   const STATUS_UI = { level1: 'Level one', onscene: 'On scene', staging: 'Level two staging' };
-  const OPTS = { wsobj: WSOBJ_UI, need: NEED_UI, type: TYPE_LABEL };
+  const NOVERT_UI = { qdeck: 'Metal Q-decking', garage: 'Garage fire', tile: 'Tile roof', bowstring: 'Bowstring truss', nottop: 'Fire not on the floor just below the roof', mobilehome: 'Mobile home', attic: 'Attic fire', roofover: 'Roof over' };
+  const OPTS = { novert: NOVERT_UI, wsobj: WSOBJ_UI, need: NEED_UI, type: TYPE_LABEL };
   const RU = { data: null, orig: '' };
   const getPath = (o, p) => p.split('.').reduce((a, k) => a[k], o);
   function agTab(name) {
