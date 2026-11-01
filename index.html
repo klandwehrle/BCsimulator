@@ -210,6 +210,10 @@ textarea.report { font-family: var(--f-mono); font-size: .98rem; line-height: 1.
 #modelText { white-space: pre-line; }
 .radio.log { max-height: none; }
 .radio .m .t { font-family: var(--f-mono); font-size: .78rem; color: var(--muted); margin-right: 6px; }
+.loading { max-width: 520px; margin: 40px auto; text-align: center; justify-items: center; }
+.loading .spinner { width: 54px; height: 54px; border-radius: 50%; border: 5px solid var(--line); border-top-color: var(--accent); animation: spin .9s linear infinite; }
+.bar-track { width: 100%; height: 10px; border-radius: 99px; background: var(--chip); overflow: hidden; }
+.bar-track i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s; }
 .checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .checklist li { display: flex; gap: 10px; align-items: baseline; padding: 6px 10px; border-radius: 8px; background: var(--paper); border: 1px solid var(--line); }
 .checklist li::before { content: "○"; font-weight: 700; color: var(--muted); }
@@ -351,6 +355,17 @@ img { max-width: 100%; }
 </section>
 
 <!-- TONE OUT -->
+<section data-screen="loading" hidden>
+  <div class="panel loading">
+    <div class="spinner" aria-hidden="true"></div>
+    <h2 id="loadHead">Getting the call ready</h2>
+    <p class="muted" id="loadText">Loading the building photos…</p>
+    <div class="bar-track" role="progressbar" aria-label="Photos loaded" aria-valuemin="0" aria-valuemax="100" id="loadBar"><i id="loadFill"></i></div>
+    <p class="note bad" id="loadErr" hidden></p>
+    <div class="row" id="loadErrRow" hidden><button class="btn" type="button" id="loadRetry">Try again</button><button class="btn quiet" type="button" id="loadHome">Back to buildings</button></div>
+  </div>
+</section>
+
 <section data-screen="dispatch" hidden>
   <div class="console">
     <div class="row" style="justify-content:space-between"><span class="eyebrow">Tone out · <span id="dispName">Dispatch</span> · <span id="dispTime"></span></span><span class="tone" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
@@ -1362,9 +1377,35 @@ const FX = (() => {
     if (!sd) return '';
     if (sd.src) return sd.src;
     if (!b.remote || !sd.fileId) return '';
-    imgCache[sd.fileId] = imgCache[sd.fileId] || Api.call('image', { id: sd.fileId }).then(j => j.dataUrl);
+    // Photos come back as data URLs; keeping them as blob URLs makes switching between sides instant.
+    imgCache[sd.fileId] = imgCache[sd.fileId] || Api.call('image', { id: sd.fileId }).then(j => toBlobUrl(j.dataUrl));
     try { sd.src = await imgCache[sd.fileId]; } catch (e) { delete imgCache[sd.fileId]; if (e.code === 'auth') expired(); throw e; }
     return sd.src;
+  }
+  function toBlobUrl(dataUrl) {
+    try {
+      const m = String(dataUrl).match(/^data:([^;]+);base64,(.*)$/); if (!m) return dataUrl;
+      const bin = atob(m[2]), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return URL.createObjectURL(new Blob([bytes], { type: m[1] }));
+    } catch { return dataUrl; }
+  }
+  /* Before a call starts: fetch every photo of the building at once (approach and all four sides) and decode them,
+   * so the approach, the windshield view, and each side of the 360 show without waiting. */
+  const decoded = [];
+  async function preloadBuilding(b, progress) {
+    const sides = ['E', 'A', 'B', 'C', 'D'].filter(k => k === 'E' ? b.approach : b.sides && b.sides[k]);
+    let done = 0; progress(0, sides.length);
+    const fails = [];
+    await Promise.all(sides.map(async k => {
+      try {
+        const src = await srcOf(b, k);
+        if (src) { const im = new Image(); im.src = src; decoded.push(im); if (im.decode) await im.decode().catch(() => { }); }
+      } catch (e) { if (e.code === 'auth') throw e; fails.push(k === 'E' ? 'approach' : 'side ' + SIDE_NAME[k]); }
+      progress(++done, sides.length);
+    }));
+    while (decoded.length > 12) decoded.shift();   // keep the most recent building's photos ready
+    return fails;
   }
   function fromRemote(b) {
     const ops = b.openings || [];
@@ -1407,7 +1448,7 @@ const FX = (() => {
   function go(name) {
     $$('section[data-screen]').forEach(s => s.hidden = s.dataset.screen !== name);
     $('#bar').hidden = name === 'login';
-    $$('.bar nav button').forEach(b => b.setAttribute('aria-current', b.dataset.nav === name || (b.dataset.nav === 'home' && ['dispatch', 'enroute', 'approach', 'scene', 'walk', 'command', 'debrief'].includes(name)) ? 'page' : 'false'));
+    $$('.bar nav button').forEach(b => b.setAttribute('aria-current', b.dataset.nav === name || (b.dataset.nav === 'home' && ['loading', 'dispatch', 'enroute', 'approach', 'scene', 'walk', 'command', 'debrief'].includes(name)) ? 'page' : 'false'));
     if (name !== 'scene') Speech.stop();
     if (name !== 'command' && name !== 'debrief' && name !== 'enroute') { try { speechSynthesis.cancel(); } catch { } }
     if (name !== 'enroute') clearTimeout(enroute.h);
@@ -1490,11 +1531,27 @@ const FX = (() => {
     $('#dispTime').textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     $('#unitsTone').innerHTML = '';
     $('#report').value = ''; $('#report360').value = ''; $('#corrText').value = ''; $('#micNote').hidden = true;
+    // Loading screen: the photos and the new call load together; dispatch tones out once both are ready.
+    go('loading');
+    $('#loadHead').textContent = b.name; $('#loadErr').hidden = true; $('#loadErrRow').hidden = true;
+    const bar = (n, total) => { const pc = total ? Math.round(100 * n / total) : 100; $('#loadFill').style.width = pc + '%'; $('#loadBar').setAttribute('aria-valuenow', String(pc));
+      $('#loadText').textContent = total ? `Loading the building photos… ${n} of ${total}` : 'Setting up the call…'; };
+    const st0 = settings();
+    const scP = Server.call('startScenario', { buildingId: b.id, unit: st0.role === 'battalion' ? st0.bcUnit : st0.unit, mode: st0.role === 'battalion' ? 'battalion' : 'engine', delays: st0.delays === 'on', dispatchErrors: st0.dispErr === 'on', unitErrors: st0.unitErr === 'on', icErrors: st0.icErr === 'on', test });
+    let fails = [];
+    try { [fails] = await Promise.all([preloadBuilding(b, bar), scP]); }
+    catch (e) {
+      if (e.code === 'auth') return expired();
+      $('#loadText').textContent = ''; $('#loadErr').hidden = false; $('#loadErr').textContent = "Couldn't start this call. " + e.message; $('#loadErrRow').hidden = false;
+      start.retry = () => start(b, test); return;
+    }
+    if ($('section[data-screen=loading]').hidden) return;   // the member left the loading screen
+    if (fails.length) toast("Couldn't load " + fails.join(', ') + '. That view may be slow to appear.');
     go('dispatch');
     try {
       const st = settings();
       S.mode = st.role === 'battalion' ? 'battalion' : 'engine';
-      S.sc = await Server.call('startScenario', { buildingId: b.id, unit: isBC() ? st.bcUnit : st.unit, mode: S.mode, delays: st.delays === 'on', dispatchErrors: st.dispErr === 'on', unitErrors: st.unitErr === 'on', icErrors: st.icErr === 'on', test });
+      S.sc = await scP;
       S.units = S.sc.units || [];
       if (S.sc.mode !== 'battalion') S.mode = 'engine';
       if (S.sc.dispatchName) S.dispatchName = S.sc.dispatchName;
@@ -2697,6 +2754,8 @@ const FX = (() => {
     $('#respondBtn').onclick = respond;
     $('#arriveNowBtn').onclick = arriveNext;
     $('#erSkip').onclick = skipEnroute;
+    $('#loadRetry').onclick = () => start.retry && start.retry();
+    $('#loadHome').onclick = () => go('home');
     $('#logToggle').onclick = () => { const open = $('#debriefLog').hidden; $('#debriefLog').hidden = !open; $('#logToggle').setAttribute('aria-expanded', String(open)); $('#logToggle').textContent = open ? 'Hide the radio log' : 'Review every transmission'; };
     $('#roleSel').addEventListener('click', e => { const b = e.target.closest('[data-role]'); if (!b) return; store.set('role', b.dataset.role); drawRole(); });
     $('#rigSel').addEventListener('change', e => { store.set(settings().role === 'battalion' ? 'bcUnit' : 'unit', e.target.value); drawRole(); });
