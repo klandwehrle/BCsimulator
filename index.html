@@ -7,17 +7,19 @@
 <title>Size-Up Simulator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: a tactical worksheet on card stock — pale card stock, navy ink, grease-pencil red for fire and errors; the scene sits in a dark radio-console frame. */
+/* Livery: today's fire apparatus. Black cab roof with a gold-leaf pinstripe, apparatus red for action, brushed-aluminum greys, white working surfaces. */
 :root {
-  --paper: #e4ebf1; --card: #f6f9fb; --ink: #142439; --muted: #56677b; --line: #c4d0db; --chip: #d9e3ec;
-  --accent: #1c5aa2; --accent-ink: #ffffff; --accent-soft: #d2e1f2;
-  --signal: #c0381e; --signal-soft: #f6dcd5; --warn: #94660e; --warn-soft: #f4e6c6; --ok: #2c7549; --ok-soft: #d5eadb;
-  --scene: #cfdbe6; --scene-ink: #142439; --scene-line: #b4c4d3;
-  --bar-bg: #1c4f8f; --bar-ink: #ffffff; --bar-line: rgba(255,255,255,.55);
+  --paper: #eceef0; --card: #ffffff; --ink: #1b1d21; --muted: #5d636c; --line: #d4d8dd; --chip: #e6e8eb;
+  --accent: #b3141c; --accent-ink: #ffffff; --accent-soft: #f7e4e4; --accent-deep: #8c0f15;
+  --signal: #b3141c; --signal-soft: #f7e4e4; --warn: #8a5d06; --warn-soft: #f6ead0; --ok: #23683f; --ok-soft: #dcede2;
+  --scene: #d7dadf; --scene-ink: #1b1d21; --scene-line: #c3c8ce;
+  --bar-bg: #121315; --bar-ink: #ffffff; --bar-line: rgba(255,255,255,.4);
+  --gold: #c9a24c; --gold-leaf: linear-gradient(180deg, #f6e4a6 0%, #dcb658 42%, #a77d22 52%, #d8b45e 74%, #f1d98f 100%);
+  --pin: linear-gradient(90deg, #a77d22, #f1d98f 30%, #c9a24c 60%, #a77d22);
   color-scheme: light;
-  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --r: 10px;
@@ -45,7 +47,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .bar-in { max-width: 980px; margin: 0 auto; display: flex; align-items: center; gap: 12px; min-height: 54px; }
 .brand { white-space: nowrap; font-family: var(--f-display); font-weight: 700; font-size: 1.3rem; letter-spacing: .06em; text-transform: uppercase; display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; }
-.brand .card-mark { width: 22px; height: 15px; border-radius: 2px; background: #ffffff; box-shadow: inset 0 -4px 0 #9cc0ea; }
+.brand .card-mark { width: 14px; height: 22px; border-radius: 2px; background: var(--accent); box-shadow: inset 0 0 0 2px #121315, 0 0 0 1px var(--gold); }
 .bar .grow { flex: 1; }
 .bar .dept { font-family: var(--f-mono); font-size: .75rem; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .bar nav { display: flex; gap: 4px; }
@@ -84,7 +86,7 @@ textarea { resize: vertical; }
 .login { max-width: 520px; margin: 6vh auto 0; }
 .login .panel { gap: 18px; padding: 26px; }
 .login h1 { font-size: clamp(2.4rem, 9vw, 3.4rem); }
-.cardstock { border-top: 10px solid #2d6bb0; }
+.cardstock { border-top: 8px solid var(--accent); box-shadow: inset 0 3px 0 -1px var(--gold); }
 
 /* home */
 .hero-run { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
@@ -282,6 +284,95 @@ details summary { cursor: pointer; font-family: var(--f-display); font-weight: 7
 .boxlist button.sel { border-color: var(--signal); color: var(--signal); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 8px; z-index: 30; font-weight: 700; max-width: calc(100% - 32px); }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* login card: apparatus red edge with a gold pinstripe */
+.panel.cardstock { border-top: 8px solid var(--accent); box-shadow: inset 0 2px 0 var(--gold); }
+/* debrief: gold for recognized parts, red only for problems */
+.heard mark { background: #f6edd3; }
+.heard mark sup { color: #8a6514; }
+.model { background: #f6f7f8; border-left: 4px solid var(--gold); }
+/* ===== Livery overrides: sentence-case type, gold-leaf pinstripe, apparatus paint ===== */
+h1, h2, h3, .brand, .btn, .bar nav button, .order li, .ptt-status strong, .units .u strong, .radio .m b, .sides button, details summary, .tabs button,
+.eyebrow, table.t th, .items li .area, dl.kv dt, #apTable td[data-label]::before, #stTable td[data-label]::before, .scene .badge {
+  text-transform: none; letter-spacing: 0; }
+h1, h2, h3 { font-family: var(--f-display); font-stretch: 100%; font-weight: 700; letter-spacing: -.01em; }
+h1 { font-size: clamp(2rem, 6vw, 2.75rem); font-weight: 800; letter-spacing: -.02em; }
+h2 { font-size: 1.45rem; }
+h3 { font-size: 1.08rem; font-weight: 700; }
+.eyebrow, table.t th, .items li .area, dl.kv dt, #apTable td[data-label]::before, #stTable td[data-label]::before {
+  font-family: var(--f-display); font-size: .8rem; font-weight: 600; color: var(--muted); }
+
+/* cab roof: black bar, double gold-leaf pinstripe */
+.bar { background: var(--bar-bg); box-shadow: none; border-bottom: 0; }
+.bar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -6px; height: 6px; pointer-events: none;
+  background: linear-gradient(var(--bar-bg), var(--bar-bg)) 0 0 / 100% 1px no-repeat, var(--pin) 0 1px / 100% 2px no-repeat,
+    linear-gradient(var(--bar-bg), var(--bar-bg)) 0 3px / 100% 1px no-repeat, var(--pin) 0 4px / 100% 1px no-repeat; }
+.brand { font-family: var(--f-display); font-stretch: 112%; font-weight: 800; font-size: 1.32rem; letter-spacing: .01em; }
+.brand-text { background: var(--gold-leaf); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.9)); }
+.bar .dept { font-family: var(--f-body); color: #b9bdc4; opacity: 1; }
+.bar nav button { font-family: var(--f-display); font-weight: 600; font-size: 1rem; border: 0; border-radius: 0; padding: 8px 10px; position: relative; color: #e9eaec; }
+.bar nav button:hover { background: none; color: #fff; }
+.bar nav button[aria-current="page"] { background: none; color: #fff; }
+.bar nav button[aria-current="page"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 2px; height: 2px; background: var(--pin); border-radius: 2px; }
+main { padding-top: 26px; }
+
+/* surfaces: white panels on brushed aluminum, quiet borders */
+.panel, .bldg { border-color: var(--line); border-radius: 12px; }
+input[type=text], input[type=email], input[type=number], input[type=url], select, textarea { background: #fbfbfc; border-color: #c9cdd3; }
+input:focus, select:focus, textarea:focus { border-color: var(--ink); }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+/* buttons: apparatus paint */
+.btn { font-family: var(--f-display); font-weight: 700; font-size: 1.02rem; border-radius: 8px; border-color: var(--accent-deep);
+  background: linear-gradient(180deg, #c81a23 0%, var(--accent) 55%, #9e1118 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.22); }
+.btn:hover:not(:disabled) { background: linear-gradient(180deg, #b81820 0%, #9e1118 100%); }
+.btn.big { font-size: 1.15rem; font-weight: 700; }
+.btn.small { font-size: .9rem; }
+.btn.ghost { background: #fff; color: var(--ink); border-color: var(--ink); box-shadow: none; }
+.btn.ghost:hover:not(:disabled) { background: var(--chip); }
+.btn.quiet { background: transparent; color: var(--ink); border-color: var(--line); box-shadow: none; }
+.btn.quiet:hover:not(:disabled) { background: var(--chip); }
+
+/* chips and toggles: black when chosen, gold check */
+.chips button { font-family: var(--f-display); font-weight: 600; border-color: var(--line); background: #fff; }
+.chips button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.chips button[aria-pressed="true"]::before { color: var(--gold); }
+.tabs button[aria-pressed="true"], .sides button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+/* dispatch tone-out: the rig's MDT */
+.console { background: #17181b; color: #f2f3f5; border: 1px solid #000; border-left: 5px solid var(--accent); }
+.console .eyebrow { color: #a8adb5; }
+.console h2 { color: #fff; }
+.console .tx { color: #f2f3f5; }
+.console .btn.ghost { background: transparent; color: #f2f3f5; border-color: #6b7078; }
+.console .btn.ghost:hover:not(:disabled) { background: rgba(255,255,255,.08); }
+
+/* radio and units */
+.units .u strong, .radio .m b { font-family: var(--f-display); font-weight: 700; }
+.units .u { background: #f7f8f9; border-radius: 8px; }
+.units .u .st { font-family: var(--f-body); font-size: .8rem; }
+.units .u .eta { font-family: var(--f-display); font-size: .88rem; font-weight: 700; }
+.units .u.waiting .eta, .units .u .eta:not(:empty) { font-variant-numeric: tabular-nums; }
+.units .u .task { font-family: var(--f-body); font-size: .86rem; }
+.units .u.mine { border-color: var(--ink); background: #fff; box-shadow: inset 4px 0 0 var(--accent); }
+.units .u.assigned { background: #f2f8f4; border-color: #b9d7c4; }
+.radio .m.disp { border-left: 4px solid var(--ink); }
+.radio .m.ic { border-left: 4px solid var(--accent); }
+.radio .m.me { background: #f4f5f6; border-color: var(--ink); }
+.readback { background: #f4f5f6; border-left: 5px solid var(--ink); }
+.ptt { border-color: var(--ink); }
+.ptt.live { background: var(--accent); border-color: var(--accent-deep); }
+.ptt-status strong { font-family: var(--f-display); font-weight: 700; font-size: 1.1rem; }
+.order li { font-family: var(--f-display); font-weight: 600; }
+.scene .badge { font-family: var(--f-display); font-weight: 600; font-size: .8rem; }
+details summary { font-family: var(--f-display); font-weight: 700; }
+.note { border-left-color: var(--ink); background: #f4f5f6; }
+.loading .spinner { border-top-color: var(--accent); }
+.bar-track i { background: var(--accent); }
+.checklist li.done { border-color: var(--ink); }
+.checklist li.done::before { color: var(--accent); }
+.tag { font-family: var(--f-display); font-weight: 600; font-size: .75rem; }
 
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
@@ -488,7 +579,7 @@ img { max-width: 100%; }
     <div style="display:grid;gap:20px;min-width:0">
       <div class="panel"><h3>What to fix</h3><ul class="items" id="fixList"></ul></div>
       <div class="panel"><h3 id="heardHead">What the app heard</h3><div class="heard" id="heard"></div>
-        <p class="muted" style="font-size:.88rem" id="heardNote">Blue marks are recognized size-up parts, numbered in size-up order. Red marks are terms that aren't approved.</p></div>
+        <p class="muted" style="font-size:.88rem" id="heardNote">Gold marks are recognized size-up parts, numbered in size-up order. Red underlined marks are terms that aren't approved.</p></div>
       <div class="panel" id="logPanel"><div class="row" style="justify-content:space-between"><h3>Radio log</h3><button class="btn quiet small" type="button" id="logToggle" aria-expanded="false">Review every transmission</button></div>
         <p class="muted" style="font-size:.88rem" id="logNote">Everything said on the radio this call, in order. Your transmissions show exactly what the app heard.</p>
         <div class="radio log" id="debriefLog" hidden></div></div>
@@ -1533,7 +1624,7 @@ const FX = (() => {
     };
   })();
   async function start(b, test) {
-    S.b = b; S.sc = null; S.out = null; S.seen = new Set(['A']); S.did360 = false; S.units = []; S.t0 = 0; S.readback = ''; S.skip = 0; S.radio = []; S.announced = new Set(); S.cmd = false; S.report360 = ''; S.bc = null; S.timerSaid = false;
+    S.b = b; S.sc = null; S.out = null; S.seen = new Set(['A']); S.did360 = false; S.units = []; S.t0 = 0; S.readback = ''; S.skip = 0; S.radio = []; S.announced = new Set(); S.cmd = false; S.report360 = ''; S.bc = null; S.timerSaid = false; S.xfer = null;
     $('#assignText').value = '';
     Tones.prime();
     $('#dispText').textContent = 'Dispatching…';
@@ -1828,6 +1919,7 @@ const FX = (() => {
 
 
   /* ---------- command board: units arrive, command gives assignments ---------- */
+  const xferBnUI = () => S.units.filter(u => u.type === 'battalion' && !u.mine).sort((x, y) => x.eta - y.eta)[0] || null;
   const STATUS_TEXT = { level1: 'Level one', onscene: 'On scene', staging: 'Level two staging', assigned: 'Assigned', command: 'Command' };
   const STATUS_RADIO = { level1: 'level one, one block out', onscene: 'on scene', staging: 'in level two staging' };
   const elapsed = () => S.t0 ? (Date.now() - S.t0) / 1000 + (S.skip || 0) : 0;
@@ -1910,6 +2002,7 @@ const FX = (() => {
     S.units.filter(u => !u.mine && !S.announced.has(u.name) && u.eta * 60 <= elapsed()).sort((a, b) => a.eta - b.eta).forEach(u => {
       S.announced.add(u.name);
       let txt = u.status === 'staging' ? `${cmd} from ${u.name}, ${STATUS_RADIO.staging}.` : `${S.dispatchName} from ${u.name}, ${STATUS_RADIO[u.status] || 'on scene'}.`;
+      if (!isBC() && u.type === 'battalion' && u === xferBnUI()) txt = `${cmd} from ${u.name}.`;   // the chief calls command for the transfer
       if (isBC() && u.status === 'staging') txt = S.bc && S.bc.staging ? `${cmd} from ${u.name}, in level two staging at ${S.bc.staging}.` : `${cmd} from ${u.name}, approaching the scene. Where do you want us to stage?`;
       radio(u.name, txt, 'unit'); speakQ(txt, u.name);
     });
@@ -1925,9 +2018,9 @@ const FX = (() => {
     $('#unitsCmd').innerHTML = S.units.slice().sort((x, y) => (y.mine ? 1 : 0) - (x.mine ? 1 : 0) || x.eta - y.eta).map(u => {
       const here = u.mine || u.eta * 60 <= sec;
       const cls = ['u']; let eta;
-      if (u.mine) { cls.push('mine'); eta = isBC() && !(S.bc && S.bc.transfer) ? 'On scene' : 'Command'; }
+      if (u.mine) { cls.push('mine'); eta = isBC() && !(S.bc && S.bc.transfer) ? 'On scene' : !isBC() && S.xfer && S.xfer.stage === 'done' ? 'With crew' : 'Command'; }
       else if (!here) { cls.push('waiting'); eta = clockOf(u.eta * 60 - sec); }
-      else { cls.push('tap'); if (u.task) cls.push('assigned'); eta = u.task ? 'Assigned' : STATUS_TEXT[u.status] || 'On scene'; }
+      else { cls.push('tap'); if (u.task) cls.push('assigned'); eta = u.status === 'command' ? 'Command' : u.task ? 'Assigned' : STATUS_TEXT[u.status] || 'On scene'; }
       const meta = [TYPE_LABEL[u.type] || u.type, u.staff ? u.staff + ' staffed' : ''].filter(Boolean).join(' · ');
       return `<div class="${cls.join(' ')}"><span><strong>${esc(u.name)}</strong> <span class="st">${esc(meta)}</span></span><span class="eta">${esc(eta)}</span>${u.task ? `<span class="task">${esc(u.task)}</span>` : ''}</div>`;
     }).join('');
@@ -1963,8 +2056,11 @@ const FX = (() => {
     try {
       const r = await Server.call('assign', { scenarioId: S.sc.scenarioId, text, minute: elapsed() / 60 });
       if (r.note) { $('#assignNote').hidden = false; $('#assignNote').textContent = r.note; return; }
-      radio(S.b.command + ' Command', text, 'me');
-      if (r.reply) { radio(r.from, r.reply, 'unit'); speakQ(r.reply, r.from); }
+      const me = (S.units.find(u => u.mine) || {}).name;
+      radio(S.xfer && S.xfer.stage === 'done' ? me : S.b.command + ' Command', text, 'me');
+      if (r.replies) r.replies.forEach(x => { radio(x.from, x.text, x.kind); speakQ(x.text, x.from); });
+      else if (r.reply) { radio(r.from, r.reply, 'unit'); speakQ(r.reply, r.from); }
+      if (r.xfer) S.xfer = r.xfer;
       if (r.units) S.units = r.units;
       $('#assignText').value = ''; renderCmdUnits();
     } catch (e) { if (e.code === 'auth') return expired(); toast("The unit didn't hear you. " + e.message); }
@@ -2012,7 +2108,7 @@ const FX = (() => {
     $('#passList').innerHTML = pass.map(li).join(''); $('#passCount').textContent = pass.length;
     $('#heard').innerHTML = heardHtml(r.tokens, r.matches) || '<span class="muted">Nothing recognized.</span>';
     $('#heardHead').textContent = r.mode === 'battalion' ? 'What the app heard: your command transfer' : 'What the app heard';
-    $('#heardNote').textContent = r.mode === 'battalion' ? 'Your transmission to dispatch assuming command. Open the radio log below for every transmission.' : 'Blue marks are recognized size-up parts, numbered in size-up order. Red marks are terms that aren\'t approved.';
+    $('#heardNote').textContent = r.mode === 'battalion' ? 'Your transmission to dispatch assuming command. Open the radio log below for every transmission.' : 'Gold marks are recognized size-up parts, numbered in size-up order. Red underlined marks are terms that aren\'t approved.';
     drawLog(); $('#debriefLog').hidden = true; $('#logToggle').setAttribute('aria-expanded', 'false'); $('#logToggle').textContent = 'Review every transmission';
     $('#modelText').textContent = r.model;
     $('#model360Text').textContent = r.model360;
