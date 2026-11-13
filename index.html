@@ -74,7 +74,7 @@ section[data-screen] { display: grid; gap: 20px; }
 .btn.small { min-height: 34px; padding: 4px 12px; font-size: .92rem; }
 label.f { display: grid; gap: 5px; font-weight: 700; font-size: .92rem; min-width: 0; }
 label.f span.hint { font-weight: 400; color: var(--muted); font-size: .85rem; }
-input[type=text], input[type=email], input[type=number], input[type=url], select, textarea {
+input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], select, textarea {
   width: 100%; min-height: 44px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
 textarea { resize: vertical; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; align-items: start; }
@@ -330,7 +330,7 @@ main { padding-top: 26px; }
 
 /* surfaces: white panels on brushed aluminum, quiet borders */
 .panel, .bldg { border-color: var(--line); border-radius: 12px; }
-input[type=text], input[type=email], input[type=number], input[type=url], select, textarea { background: #fbfbfc; border-color: #c9cdd3; }
+input[type=text], input[type=email], input[type=password], input[type=number], input[type=url], select, textarea { background: #fbfbfc; border-color: #c9cdd3; }
 input:focus, select:focus, textarea:focus { border-color: var(--ink); }
 :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 
@@ -419,12 +419,24 @@ img { max-width: 100%; }
         <input type="email" id="loginEmail" autocomplete="email" placeholder="lt.garcia@yourcityfire.gov" required>
         <span class="hint">Your email decides which agency's buildings you see.</span>
       </label>
-      <label class="f" id="codeField" hidden>Sign-in code
+      <label class="f" id="pwField" hidden>Password
+        <input type="password" id="loginPw" autocomplete="current-password">
+      </label>
+      <label class="f" id="codeField" hidden>Code from your email
         <input type="text" id="loginCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code">
         <span class="hint" id="codeHint"></span>
       </label>
+      <label class="f" id="newPwField" hidden>New password
+        <input type="password" id="newPw" autocomplete="new-password" minlength="8">
+        <span class="hint">At least 8 characters. Not your email.</span>
+      </label>
+      <label class="f" id="newPw2Field" hidden>New password again
+        <input type="password" id="newPw2" autocomplete="new-password" minlength="8">
+      </label>
+      <label class="row" id="showPwRow" hidden style="gap:8px;font-size:.92rem"><input type="checkbox" id="showPw"> Show password</label>
       <button class="btn big" type="submit" id="loginBtn">Sign in</button>
-      <button class="btn quiet small" type="button" id="changeEmail" hidden>Use a different email</button>
+      <button class="btn quiet small" type="button" id="resetPw" hidden>Set or reset password</button>
+      <button class="btn quiet small" type="button" id="changeEmail" hidden>Back to sign in</button>
       <p class="muted" id="loginMode" style="font-size:.9rem"></p>
       <p class="note bad" id="loginErr" hidden></p>
     </form>
@@ -1475,7 +1487,7 @@ const FX = (() => {
       catch { throw new Error("Can't reach the simulator's server. Check your connection and try again."); }
       if (!r.ok) throw new Error('The server answered with an error (' + r.status + ').');
       const j = await r.json();
-      if (j.error) { const e = new Error(j.error); e.code = j.code; if (j.code === 'auth') { store.del('token'); } throw e; }
+      if (j.error) { const e = new Error(j.error); e.code = j.code; if (j.code === 'auth') { store.del('token'); Api.lastAuth = j.error; } throw e; }
       return j;
     }
   };
@@ -1555,7 +1567,7 @@ const FX = (() => {
     S.buildings = [...Samples.list(), ...(j.buildings || []).map(fromRemote)];
     store.set('session', { email: j.email });
   }
-  function expired() { S.session = null; go('login'); loginStage('email'); $('#loginErr').hidden = false; $('#loginErr').textContent = 'Your sign-in has expired. Sign in again.'; }
+  function expired() { S.session = null; $('#loginPw').value = ''; go('login'); loginStage('password'); $('#loginErr').hidden = false; $('#loginErr').textContent = Api.lastAuth || 'Your sign-in has expired. Sign in again.'; Api.lastAuth = ''; }
 
   /* ---------- navigation ---------- */
   function go(name) {
@@ -2874,19 +2886,33 @@ const FX = (() => {
 
   /* ---------- wiring ---------- */
   function wire() {
-    $('#loginMode').textContent = Api.url() ? "We'll email you a 6-digit code to sign in." : window.LocalServer ? 'Demo mode: built-in buildings and rules on this device.' : '';
+    $('#loginMode').textContent = Api.url() ? 'One device at a time: signing in here signs your account out anywhere else.' : window.LocalServer ? 'Demo mode: built-in buildings and rules on this device.' : '';
     if (!Server.available()) { $('#loginErr').hidden = false; $('#loginErr').textContent = "This copy of the simulator isn't connected to its server yet. Your training admin needs to add the server address to config.js."; $('#loginBtn').disabled = true; }
-    $('#changeEmail').onclick = () => { loginStage('email'); $('#loginEmail').focus(); };
+    $('#changeEmail').onclick = () => { loginStage('password'); $('#loginPw').focus(); };
+    $('#resetPw').onclick = () => { $('#loginErr').hidden = true; loginStage('reset'); $('#loginEmail').focus(); };
+    $('#showPw').onchange = e => ['#loginPw', '#newPw', '#newPw2'].forEach(id => $(id).type = e.target.checked ? 'text' : 'password');
     $('#loginForm').addEventListener('submit', async e => {
       e.preventDefault(); const er = $('#loginErr'); er.hidden = true;
-      const btn = $('#loginBtn'); btn.disabled = true; btn.textContent = 'Working…';
+      const btn = $('#loginBtn'), label = btn.textContent; btn.disabled = true; btn.textContent = 'Working…';
       try {
         const email = cleanEmail($('#loginEmail').value);
-        if (Local()) { demoSignIn(email); go('home'); }
-        else if (loginStage.now !== 'code') { await Api.call('requestCode', { email }); loginStage('code', email); }
-        else { const j = await Api.call('verifyCode', { email, code: $('#loginCode').value }); store.set('token', j.token); await loadAgency(); go('home'); }
-      } catch (err) { er.hidden = false; er.textContent = err.message; }
-      finally { btn.disabled = false; btn.textContent = loginStage.now === 'code' ? 'Sign in' : (Api.url() ? 'Email me a code' : 'Sign in'); }
+        if (Local()) { demoSignIn(email); go('home'); return; }
+        if (loginStage.now === 'password') {
+          const j = await Api.call('login', { email, password: $('#loginPw').value });
+          $('#loginPw').value = ''; store.set('token', j.token); await loadAgency(); go('home');
+        } else if (loginStage.now === 'reset') {
+          await Api.call('requestCode', { email }); loginStage('code', email);
+        } else {
+          if ($('#newPw').value !== $('#newPw2').value) throw new Error("The two passwords don't match.");
+          const j = await Api.call('setPassword', { email, code: $('#loginCode').value, password: $('#newPw').value });
+          ['#newPw', '#newPw2', '#loginCode'].forEach(id => $(id).value = '');
+          store.set('token', j.token); await loadAgency(); go('home'); toast('Password set. You\'re signed in.');
+        }
+      } catch (err) {
+        er.hidden = false; er.textContent = err.message;
+        if (err.code === 'nopassword') loginStage('reset');
+      }
+      finally { btn.disabled = false; if (btn.textContent === 'Working…') btn.textContent = label; loginStage(loginStage.now, cleanEmail($('#loginEmail').value)); }
     });
     $('#brandBtn').onclick = () => go('home');
     $$('[data-nav]').forEach(b => b.onclick = () => go(b.dataset.nav));
@@ -2924,7 +2950,7 @@ const FX = (() => {
     $('#speakModel').onclick = () => say($('#modelText').textContent + ' ' + $('#model360Text').textContent, '__model');
     $('#retryGrade').onclick = finish;
     $('#saveSettings').onclick = () => { store.set('unit', $('#sUnit').value); store.set('aids', $('#sAids').value); store.set('voice', $('#sVoice').value); store.set('delays', $('#sDelays').value); store.set('dispErr', $('#sDispErr').value); store.set('unitErr', $('#sUnitErr').value); store.set('bcUnit', $('#sBcUnit').value); store.set('icErr', $('#sIcErr').value); toast('Saved.'); };
-    $('#signOut').onclick = () => { if (S.session && S.session.mode === 'sheets') Api.call('signOut').catch(() => { }); store.del('token'); store.del('session'); S.session = null; loginStage('email'); go('login'); };
+    $('#signOut').onclick = () => { if (S.session && S.session.mode === 'sheets') Api.call('signOut').catch(() => { }); store.del('token'); store.del('session'); S.session = null; loginStage('password'); go('login'); };
     // admin
     $('#photoTabs').addEventListener('click', e => { const b = e.target.closest('[data-ptab]'); if (b) { A.side = b.dataset.ptab; A.sel = -1; renderTagger(); } });
     $('#typeChips').addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (b) { A.type = b.dataset.type; renderTagger(); } });
@@ -2962,20 +2988,26 @@ const FX = (() => {
     wireRules();
   }
 
+  /* Sign-in stages: password (email and password), reset (email only, we send a code), code (code and a new password). */
   function loginStage(stage, email) {
+    if (!Api.url()) stage = 'email';   // demo mode: email only
+    const changed = loginStage.now !== stage;
     loginStage.now = stage;
-    const code = stage === 'code';
-    $('#codeField').hidden = !code; $('#changeEmail').hidden = !code;
+    const pw = stage === 'password', reset = stage === 'reset', code = stage === 'code';
+    $('#pwField').hidden = !pw; $('#loginPw').required = pw;
+    $('#codeField').hidden = !code; $('#loginCode').required = code;
+    $('#newPwField').hidden = !code; $('#newPw2Field').hidden = !code; $('#newPw').required = code; $('#newPw2').required = code;
+    $('#showPwRow').hidden = !(pw || code);
+    $('#resetPw').hidden = !pw; $('#changeEmail').hidden = !(reset || code);
     $('#loginEmail').readOnly = code;
-    $('#loginCode').required = code; if (!code) $('#loginCode').value = '';
     $('#codeHint').textContent = code ? `We sent a code to ${email}. It works for 10 minutes. Check your junk folder if you don't see it.` : '';
-    $('#loginBtn').textContent = code ? 'Sign in' : (Api.url() ? 'Email me a code' : 'Sign in');
-    if (code) $('#loginCode').focus();
+    $('#loginBtn').textContent = pw ? 'Sign in' : reset ? 'Email me a code' : code ? 'Set password and sign in' : 'Sign in';
+    if (changed && code) $('#loginCode').focus();
   }
   async function boot() {
     store.del('apiUrl');
     wire();
-    loginStage('email');
+    loginStage('password');
     const sess = store.get('session', null);
     if (sess && sess.email) $('#loginEmail').value = sess.email;
     if (Api.url()) {
