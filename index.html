@@ -287,6 +287,17 @@ details summary { cursor: pointer; font-family: var(--f-display); font-weight: 7
 
 /* login card: apparatus red edge with a gold pinstripe */
 .panel.cardstock { border-top: 8px solid var(--accent); box-shadow: inset 0 2px 0 var(--gold); }
+/* the radio sits on the photo, bottom left, so the member never scrolls away from the fire to talk */
+.scene .scene-mic { position: absolute; left: 10px; bottom: 10px; z-index: 3; gap: 10px; align-items: center; max-width: calc(100% - 20px); }
+.scene .scene-mic .ptt { width: 68px; height: 68px; background: rgba(255,255,255,.96); box-shadow: 0 2px 12px rgba(0,0,0,.45); }
+.scene .scene-mic .ptt svg { width: 26px; height: 26px; }
+.scene .scene-mic .ptt.live { background: var(--accent); color: #fff; }
+.scene .scene-mic .ptt-status { background: rgba(5,9,14,.8); color: #fff; padding: 5px 10px; border-radius: 6px; }
+.scene .scene-mic .ptt-status strong { font-size: .95rem; color: #fff; }
+.scene .scene-mic .ptt-status strong.busy { color: var(--gold); }
+.scene .scene-mic .ptt-status .muted { display: none; }
+#sceneMain .addr { left: auto; right: 10px; max-width: calc(100% - 210px); }
+@media (max-width: 480px) { .scene .scene-mic .ptt { width: 60px; height: 60px; } .scene .scene-mic .ptt-status strong { font-size: .88rem; } #sceneMain .addr { display: none; } }
 /* debrief: gold for recognized parts, red only for problems */
 .heard mark { background: #f6edd3; }
 .heard mark sup { color: #8a6514; }
@@ -491,16 +502,16 @@ img { max-width: 100%; }
 <section data-screen="scene" hidden>
   <div class="split">
     <div style="display:grid;gap:12px;min-width:0">
-      <div class="scene" id="sceneMain"><img alt="Side Alpha of the building, windshield view"><canvas></canvas>
+      <div class="scene" id="sceneMain"><img alt="Side Alpha of the building, windshield view"><canvas></canvas><div class="ptt-row scene-mic">
+        <button class="ptt" type="button" id="pttBtn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <div class="ptt-status"><strong id="pttState">Tap to key up</strong><span class="muted" id="pttHint">Tap again when you're done talking.</span></div>
+      </div>
         <span class="badge">Side Alpha · windshield</span><span class="clock" id="clock">0:00</span><span class="addr" id="sceneAddr"></span></div>
       <ol class="order" id="orderStrip" aria-label="Size-up report order"></ol>
     </div>
     <div class="panel">
       <h3>Initial radio report</h3>
-      <div class="ptt-row">
-        <button class="ptt" type="button" id="pttBtn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-        <div class="ptt-status"><strong id="pttState">Tap to key up</strong><span class="muted" id="pttHint">Tap again when you're done talking.</span></div>
-      </div>
+      
       <label class="f"><span id="reportLabel">What the app heard</span>
         <textarea class="report" id="report" rows="7" placeholder="Engine 1 on scene, small 2 story single family residential…"></textarea></label>
       <p class="note warn" id="micNote" hidden></p>
@@ -514,7 +525,10 @@ img { max-width: 100%; }
 <section data-screen="walk" hidden>
   <div class="split">
     <div style="display:grid;gap:12px;min-width:0">
-      <div class="scene" id="sceneWalk"><img alt="Building side view"><canvas></canvas><span class="badge" id="walkBadge">Side Alpha</span><span class="clock" id="clock2">0:00</span></div>
+      <div class="scene" id="sceneWalk"><img alt="Building side view"><canvas></canvas><div class="ptt-row scene-mic">
+          <button class="ptt" type="button" id="ptt2Btn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <div class="ptt-status"><strong id="ptt2State">Tap to key up</strong><span class="muted">Report the fire's location, any change in plan, and hazards.</span></div>
+        </div><span class="badge" id="walkBadge">Side Alpha</span><span class="clock" id="clock2">0:00</span></div>
       <div class="sides" id="sideBtns"></div>
     </div>
     <div style="display:grid;gap:20px;min-width:0">
@@ -526,10 +540,7 @@ img { max-width: 100%; }
       </div>
       <div class="panel">
         <h3>360 update <span class="muted" style="font-size:.9rem;text-transform:none;letter-spacing:0;font-family:var(--f-body);font-weight:400">optional</span></h3>
-        <div class="ptt-row">
-          <button class="ptt" type="button" id="ptt2Btn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-          <div class="ptt-status"><strong id="ptt2State">Tap to key up</strong><span class="muted">Report the fire's location, any change in plan, and hazards.</span></div>
-        </div>
+        
         <textarea class="report" id="report360" rows="4" placeholder="360 complete. Fire is on side Charlie, floor 1. Propane tank on side Bravo…"></textarea>
         <button class="btn big" type="button" id="finishWalkBtn" hidden>Send 360 update</button>
       </div>
@@ -541,17 +552,17 @@ img { max-width: 100%; }
 <section data-screen="command" hidden>
   <div class="split">
     <div style="display:grid;gap:12px;min-width:0">
-      <div class="scene" id="sceneCmd"><img alt="Side Alpha of the building"><canvas></canvas><span class="badge" id="cmdBadge">Command</span><span class="clock" id="clock3">0:00</span></div>
+      <div class="scene" id="sceneCmd"><img alt="Side Alpha of the building"><canvas></canvas><div class="ptt-row scene-mic">
+          <button class="ptt" type="button" id="ptt4Btn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <div class="ptt-status"><strong id="ptt4State">Tap to key up</strong><span class="muted" style="font-size:.88rem" id="ptt4Help">Tap the mic, talk, then tap it again to send.</span></div>
+        </div><span class="badge" id="cmdBadge">Command</span><span class="clock" id="clock3">0:00</span></div>
       <div class="panel"><div class="row" style="justify-content:space-between"><h3>Radio</h3><span class="muted" style="font-size:.85rem" id="radioHint">Newest at the top</span></div><div class="radio" id="radioLog" aria-live="polite"></div></div>
     </div>
     <div style="display:grid;gap:20px;min-width:0;align-content:start">
       <div class="panel">
         <h3 id="assignHead">Give an assignment</h3>
         <p class="muted" style="font-size:.92rem" id="assignHint" hidden></p>
-        <div class="ptt-row">
-          <button class="ptt" type="button" id="ptt4Btn" aria-label="Start talking"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
-          <div class="ptt-status"><strong id="ptt4State">Tap to key up</strong><span class="muted" style="font-size:.88rem" id="ptt4Help">Tap the mic, talk, then tap it again to send.</span></div>
-        </div>
+        
         <textarea class="report" id="assignText" rows="3" readonly aria-label="What the radio heard"></textarea>
         <p class="note warn" id="assignNote" hidden></p>
         <button class="btn big" type="button" id="sendAssign" hidden>Send</button>
